@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from .views.register_view import RegisterView
+from .views.me_view import MeView
 
 
 urlpatterns = [    
@@ -14,4 +15,7 @@ urlpatterns = [
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     # Refresh token endpoint (gets a new access token)
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # User endpoint
+    path('me/', MeView.as_view(), name='me'),
 ]
