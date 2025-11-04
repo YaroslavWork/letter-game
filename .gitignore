@@ -1,0 +1,6 @@
+# Sensitive data
+backend/db.sqlite3
+backend/.env
+
+# Other trash
+__pycache__/
