@@ -1,0 +1,37 @@
+.registerPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: var(--background);
+}
+
+.form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  background-color: var(--background-light);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.loginLink {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.loginLink a {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: var(--font-size-small);
+  transition: color 0.2s;
+}
+
+.loginLink a:hover {
+  color: var(--hover-primary);
+  text-decoration: underline;
+}

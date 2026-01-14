@@ -107,3 +107,25 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Error message styles */
+.input-error-message {
+  color: var(--danger);
+  font-size: var(--font-size-small);
+  margin-top: var(--spacing-xs);
+  display: block;
+}
+
+.api-error {
+  color: var(--danger);
+  background-color: hsl(9 21% 41% / 0.1);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  margin: var(--spacing-md) 0;
+  font-size: var(--font-size-small);
+}
+
+.input-control.input-error {
+  border-color: var(--danger);
+  border-width: 2px;
+}
