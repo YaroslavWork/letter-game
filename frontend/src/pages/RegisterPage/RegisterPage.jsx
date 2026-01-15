@@ -8,8 +8,7 @@ import styles from './RegisterPage.module.css';
 
 const initialState = {
   username: '',
-  name: '',
-  surname: '',
+  game_name: '',
   email: '',
   password: '',
   repeatPassword: '',
@@ -44,7 +43,7 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.username) newErrors.username = "Username is required";
-    if (!formData.name) newErrors.name = "First name is required";
+    if (!formData.game_name) newErrors.game_name = "Game name is required";
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!isValidEmail(formData.email)) {
@@ -67,11 +66,9 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (validateForm()) {
-      const { repeatPassword, name, surname, ...rest } = formData;
+      const { repeatPassword, ...rest } = formData;
       const apiData = {
         ...rest,
-        first_name: name,
-        last_name: surname,
       };
 
       mutate(apiData, {
@@ -132,19 +129,11 @@ export default function RegisterPage() {
         />
         <Input 
           type="text" 
-          name="name" 
-          value={formData.name} 
+          name="game_name" 
+          value={formData.game_name} 
           onChange={handleChange} 
-          placeholder="First Name" 
-          error={errors.name} 
-        />
-        <Input 
-          type="text" 
-          name="surname" 
-          value={formData.surname} 
-          onChange={handleChange} 
-          placeholder="Last Name" 
-          error={errors.surname} 
+          placeholder="Game Name" 
+          error={errors.game_name} 
         />
         <Input 
           type="email" 

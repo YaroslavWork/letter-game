@@ -25,7 +25,7 @@ export default function MainPage () {
     }
 
     if (!isAuthenticated) {
-        return null;
+        return <div>You are not logged in</div>;
     }
 
     return (
@@ -34,8 +34,7 @@ export default function MainPage () {
             
             {user && (
                 <div className={styles.userInfo}>
-                    <Text text={`Name: ${user.first_name || 'N/A'}`} />
-                    <Text text={`Surname: ${user.last_name || 'N/A'}`} />
+                    <Text text={`Game Name: ${user.game_name || 'N/A'}`} />
                     <Text text={`Email: ${user.email || 'N/A'}`} />
                 </div>
             )}

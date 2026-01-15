@@ -6,7 +6,8 @@ class UserSerializer(serializers.ModelSerializer):
     Serializer for the User model.
     Used for reading user data (no password).
     """
+    game_name = serializers.CharField(source='first_name', read_only=True)
+    
     class Meta:
         model = User
-        # List only the fields you want to return
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'game_name')
