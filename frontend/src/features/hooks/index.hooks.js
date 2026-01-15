@@ -19,3 +19,42 @@ export const useMutationLoginData = () => {
     mutationFn: (credentials) => api.loginUser(credentials),
   });
 };
+
+// Room hooks
+export const useRoom = (roomId) => {
+  return useQuery({
+    queryKey: ['room', roomId],
+    queryFn: () => api.getRoom(roomId),
+    enabled: !!roomId,
+  });
+};
+
+export const useMutationCreateRoom = () => {
+  return useMutation({
+    mutationFn: (data) => api.createRoom(data),
+  });
+};
+
+export const useMutationJoinRoom = () => {
+  return useMutation({
+    mutationFn: (roomId) => api.joinRoom(roomId),
+  });
+};
+
+export const useMutationLeaveRoom = () => {
+  return useMutation({
+    mutationFn: (roomId) => api.leaveRoom(roomId),
+  });
+};
+
+export const useMutationDeleteRoom = () => {
+  return useMutation({
+    mutationFn: (roomId) => api.deleteRoom(roomId),
+  });
+};
+
+export const useMutationDeletePlayer = () => {
+  return useMutation({
+    mutationFn: ({ roomId, playerId }) => api.deletePlayer(roomId, playerId),
+  });
+};

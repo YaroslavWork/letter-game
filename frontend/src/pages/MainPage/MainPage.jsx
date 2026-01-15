@@ -30,7 +30,7 @@ export default function MainPage () {
 
     return (
         <div className={styles.mainPage}>
-            <Header text="Welcome!" />
+            <Header text="Panstwa Miasto" />
             
             {user && (
                 <div className={styles.userInfo}>
@@ -38,6 +38,15 @@ export default function MainPage () {
                     <Text text={`Email: ${user.email || 'N/A'}`} />
                 </div>
             )}
+            
+            <div className={styles.gameActions}>
+                <Button onButtonClick={() => navigate('/host')}>
+                    Host Game
+                </Button>
+                <Button onButtonClick={() => navigate('/join')}>
+                    Join Game
+                </Button>
+            </div>
             
             <Button onButtonClick={() => {
                 logout();

@@ -24,3 +24,15 @@
     margin: 0.25rem 0;
     font-size: 1rem;
 }
+
+.gameActions {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem 0;
+    width: 100%;
+    max-width: 400px;
+}
+
+.gameActions button {
+    flex: 1;
+}
