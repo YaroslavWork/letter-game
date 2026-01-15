@@ -1,0 +1,159 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer } from '../../features/hooks/index.hooks';
+import { wsClient } from '../../lib/websocket';
+import Button from '../../components/UI/Button/Button';
+import Text from '../../components/UI/Text/Text';
+import Header from '../../components/UI/Header/Header';
+import styles from './HostGamePage.module.css';
+
+export default function HostGamePage() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const [room, setRoom] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const roomCreatedRef = useRef(false);
+  
+  const createRoomMutation = useMutationCreateRoom();
+  const deleteRoomMutation = useMutationDeleteRoom();
+  const deletePlayerMutation = useMutationDeletePlayer();
+
+  const handleWebSocketMessage = useCallback((data) => {
+    if (data.type === 'room_update') {
+      setRoom(data.data);
+      setPlayers(data.data.players || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+      return;
+    }
+
+    // Create room on mount (only once)
+    if (!roomCreatedRef.current && !createRoomMutation.isPending && !room) {
+      roomCreatedRef.current = true;
+      createRoomMutation.mutate(
+        { name: 'Panstwa Miasto Room' },
+        {
+          onSuccess: (response) => {
+            const roomData = response.data;
+            setRoom(roomData);
+            setPlayers(roomData.players || []);
+            
+            // Connect to WebSocket
+            const token = localStorage.getItem('access_token');
+            if (token) {
+              wsClient.connect(roomData.id, token);
+              
+              // Listen for room updates
+              wsClient.on('message', handleWebSocketMessage);
+            }
+          },
+          onError: (error) => {
+            console.error('Failed to create room:', error);
+            alert('Failed to create room. Please try again.');
+            roomCreatedRef.current = false;
+          }
+        }
+      );
+    }
+
+    return () => {
+      wsClient.off('message', handleWebSocketMessage);
+      wsClient.disconnect();
+    };
+  }, [isAuthenticated, navigate, handleWebSocketMessage]);
+
+  const handleDeleteRoom = () => {
+    if (room && window.confirm('Are you sure you want to delete this room?')) {
+      deleteRoomMutation.mutate(room.id, {
+        onSuccess: () => {
+          wsClient.disconnect();
+          navigate('/');
+        },
+        onError: (error) => {
+          console.error('Failed to delete room:', error);
+          alert('Failed to delete room. Please try again.');
+        }
+      });
+    }
+  };
+
+  const handleDeletePlayer = (playerId) => {
+    if (room && window.confirm('Are you sure you want to remove this player?')) {
+      deletePlayerMutation.mutate(
+        { roomId: room.id, playerId },
+        {
+          onSuccess: () => {
+            // Room update will come via WebSocket
+          },
+          onError: (error) => {
+            console.error('Failed to delete player:', error);
+            alert('Failed to remove player. Please try again.');
+          }
+        }
+      );
+    }
+  };
+
+  if (createRoomMutation.isPending) {
+    return (
+      <div className={styles.hostGamePage}>
+        <Text text="Creating room..." />
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className={styles.hostGamePage}>
+        <Text text="Failed to create room" />
+        <Button onButtonClick={() => navigate('/')}>Go Back</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.hostGamePage}>
+      <Header text="Host Game - Panstwa Miasto" />
+      
+      <div className={styles.roomInfo}>
+        <Text text={`Room ID: ${room.id}`} />
+        <Text text={`Room Name: ${room.name}`} />
+        <Text text={`Players: ${players.length}`} />
+      </div>
+
+      <div className={styles.playersList}>
+        <Header text="Players" />
+        {players.map((player) => (
+          <div key={player.id} className={styles.playerItem}>
+            <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}`} />
+            {player.user_id !== room.host_id && (
+              <Button 
+                onButtonClick={() => handleDeletePlayer(player.id)}
+                className={styles.deleteButton}
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.actions}>
+        <Button onButtonClick={handleDeleteRoom}>
+          Delete Room
+        </Button>
+        <Button onButtonClick={() => {
+          wsClient.disconnect();
+          navigate('/');
+        }}>
+          Leave
+        </Button>
+      </div>
+    </div>
+  );
+}
