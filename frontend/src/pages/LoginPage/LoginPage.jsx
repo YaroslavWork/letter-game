@@ -64,7 +64,6 @@ export default function LoginPage() {
             const responseData = response?.data || response;
             
             if (!responseData || !responseData.access || !responseData.refresh) {
-              console.error('Invalid response from login:', responseData);
               setErrors({ 
                 password: 'Invalid response from server',
                 username: 'Invalid response from server'
@@ -77,7 +76,6 @@ export default function LoginPage() {
             
             navigate('/');
           } catch (error) {
-            console.error('Error processing login response:', error);
             setErrors({ 
               password: 'Error processing login response',
               username: 'Error processing login response'

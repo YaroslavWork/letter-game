@@ -13,6 +13,7 @@ export default function HostGamePage() {
   const { user, isAuthenticated } = useAuth();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [isConnecting, setIsConnecting] = useState(false);
   const roomCreatedRef = useRef(false);
   
   const createRoomMutation = useMutationCreateRoom();
@@ -26,46 +27,88 @@ export default function HostGamePage() {
     }
   }, []);
 
+  const lastResponseRef = useRef(null);
+
+  const handleRoomCreated = useCallback((roomData) => {
+    if (roomData && roomData.id) {
+      setRoom(roomData);
+      setPlayers(roomData.players || []);
+      setIsConnecting(false);
+      
+      setTimeout(() => {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          wsClient.connect(roomData.id, token);
+        }
+      }, 100);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!createRoomMutation.isPending && !createRoomMutation.isError && !room && roomCreatedRef.current && isConnecting) {
+      if (createRoomMutation.data) {
+        const response = createRoomMutation.data;
+        const roomData = response?.data || response;
+        handleRoomCreated(roomData);
+      } else if (lastResponseRef.current) {
+        const roomData = lastResponseRef.current?.data || lastResponseRef.current;
+        handleRoomCreated(roomData);
+      }
+    }
+
+    if (createRoomMutation.isError && createRoomMutation.error) {
+      setIsConnecting(false);
+      roomCreatedRef.current = false;
+    }
+  }, [createRoomMutation.isPending, createRoomMutation.isError, createRoomMutation.isSuccess, createRoomMutation.error, createRoomMutation.data, room, isConnecting, handleRoomCreated]);
+
+  useEffect(() => {
+    wsClient.on('message', handleWebSocketMessage);
+    
+    return () => {
+      wsClient.off('message', handleWebSocketMessage);
+    };
+  }, [handleWebSocketMessage]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
 
-    // Create room on mount (only once)
-    if (!roomCreatedRef.current && !createRoomMutation.isPending && !room) {
-      roomCreatedRef.current = true;
-      createRoomMutation.mutate(
-        { name: 'Panstwa Miasto Room' },
-        {
-          onSuccess: (response) => {
-            const roomData = response.data;
-            setRoom(roomData);
-            setPlayers(roomData.players || []);
-            
-            // Connect to WebSocket
-            const token = localStorage.getItem('access_token');
-            if (token) {
-              wsClient.connect(roomData.id, token);
-              
-              // Listen for room updates
-              wsClient.on('message', handleWebSocketMessage);
-            }
-          },
-          onError: (error) => {
-            console.error('Failed to create room:', error);
-            alert('Failed to create room. Please try again.');
-            roomCreatedRef.current = false;
-          }
-        }
-      );
+    if (roomCreatedRef.current) {
+      return;
     }
 
+    roomCreatedRef.current = true;
+    setIsConnecting(true);
+
+    const createRoom = async () => {
+      try {
+        const response = await createRoomMutation.mutateAsync({ name: 'Panstwa Miasto Room' });
+        lastResponseRef.current = response;
+        const roomData = response?.data || response;
+        
+        if (roomData && roomData.id) {
+          handleRoomCreated(roomData);
+        } else {
+          alert('Failed to create room. Invalid response.');
+          roomCreatedRef.current = false;
+          setIsConnecting(false);
+        }
+      } catch (error) {
+        alert('Failed to create room. Please try again.');
+        roomCreatedRef.current = false;
+        setIsConnecting(false);
+      }
+    };
+
+    createRoom();
+
     return () => {
-      wsClient.off('message', handleWebSocketMessage);
       wsClient.disconnect();
     };
-  }, [isAuthenticated, navigate, handleWebSocketMessage]);
+  }, [isAuthenticated, navigate, createRoomMutation, handleRoomCreated]);
 
   const handleDeleteRoom = () => {
     if (room && window.confirm('Are you sure you want to delete this room?')) {
@@ -74,8 +117,7 @@ export default function HostGamePage() {
           wsClient.disconnect();
           navigate('/');
         },
-        onError: (error) => {
-          console.error('Failed to delete room:', error);
+        onError: () => {
           alert('Failed to delete room. Please try again.');
         }
       });
@@ -87,11 +129,7 @@ export default function HostGamePage() {
       deletePlayerMutation.mutate(
         { roomId: room.id, playerId },
         {
-          onSuccess: () => {
-            // Room update will come via WebSocket
-          },
-          onError: (error) => {
-            console.error('Failed to delete player:', error);
+          onError: () => {
             alert('Failed to remove player. Please try again.');
           }
         }
@@ -99,7 +137,7 @@ export default function HostGamePage() {
     }
   };
 
-  if (createRoomMutation.isPending) {
+  if (isConnecting || (!room && roomCreatedRef.current && !createRoomMutation.isError)) {
     return (
       <div className={styles.hostGamePage}>
         <Text text="Creating room..." />
@@ -107,11 +145,36 @@ export default function HostGamePage() {
     );
   }
 
-  if (!room) {
+  if (!room && createRoomMutation.isError) {
     return (
       <div className={styles.hostGamePage}>
         <Text text="Failed to create room" />
-        <Button onButtonClick={() => navigate('/')}>Go Back</Button>
+        <Button onButtonClick={() => {
+          roomCreatedRef.current = false;
+          setIsConnecting(false);
+          navigate('/');
+        }}>Go Back</Button>
+      </div>
+    );
+  }
+
+  if (!room && roomCreatedRef.current && !isConnecting) {
+    return (
+      <div className={styles.hostGamePage}>
+        <Text text="Failed to create room. Please try again." />
+        <Button onButtonClick={() => {
+          roomCreatedRef.current = false;
+          setIsConnecting(false);
+          navigate('/');
+        }}>Go Back</Button>
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className={styles.hostGamePage}>
+        <Text text="Initializing room..." />
       </div>
     );
   }

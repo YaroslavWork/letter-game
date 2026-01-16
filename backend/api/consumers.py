@@ -14,43 +14,37 @@ class RoomConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'room_{self.room_id}'
+        self.channel_name = self.channel_name
         
-        # Get user from token
         try:
             user = await self.get_user_from_token()
             if not user:
                 await self.close()
                 return
             self.user = user
-        except Exception as e:
+        except Exception:
             await self.close()
             return
         
-        # Check if room exists and user has access
         room = await self.get_room()
         if not room:
             await self.close()
             return
         
-        # Check if user is in the room
         is_in_room = await self.is_user_in_room(room, user)
         if not is_in_room:
             await self.close()
             return
         
-        # Join room group
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         
         await self.accept()
-        
-        # Send current room state
         await self.send_room_update()
     
     async def disconnect(self, close_code):
-        # Leave room group
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(
                 self.room_group_name,
@@ -81,14 +75,12 @@ class RoomConsumer(AsyncWebsocketConsumer):
         await self.send_room_update()
     
     async def room_update(self, event):
-        """Send room update to WebSocket"""
         await self.send(text_data=json.dumps({
             'type': 'room_update',
             'data': event['data']
         }))
     
     async def send_room_update(self):
-        """Send current room state to all clients"""
         room = await self.get_room()
         if room:
             room_data = await self.serialize_room(room)
@@ -102,11 +94,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def get_user_from_token(self):
-        """Extract user from JWT token in query string"""
         query_string = self.scope.get('query_string', b'').decode()
         token = None
         
-        # Parse query string to get token
         for param in query_string.split('&'):
             if 'token=' in param:
                 token = param.split('token=')[1]
@@ -125,7 +115,6 @@ class RoomConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def get_room(self):
-        """Get room by ID"""
         try:
             return Room.objects.get(id=self.room_id, is_active=True)
         except Room.DoesNotExist:
@@ -133,11 +122,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def is_user_in_room(self, room, user):
-        """Check if user is in the room"""
         return RoomPlayer.objects.filter(room=room, user=user).exists()
     
     @database_sync_to_async
     def serialize_room(self, room):
-        """Serialize room data"""
         serializer = RoomSerializer(room)
         return serializer.data

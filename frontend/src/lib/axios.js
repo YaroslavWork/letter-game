@@ -6,8 +6,7 @@ export const axios = Axios.create({
 
 axios.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('access_token')
-
+        const token = localStorage.getItem('access_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -19,7 +18,9 @@ axios.interceptors.request.use(
 );
 
 axios.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        return response;
+    },
     async (error) => {
         const originalRequest = error.config;
 
@@ -47,10 +48,8 @@ axios.interceptors.response.use(
                     return Promise.reject(error);
                 }
 
-                const response = await Axios.post('/token/refresh/', {
+                const response = await Axios.post('http://localhost:8000/api/token/refresh/', {
                     refresh: refreshToken
-                }, {
-                    baseURL: 'http://localhost:8000/api'
                 });
 
                 const { access } = response.data;

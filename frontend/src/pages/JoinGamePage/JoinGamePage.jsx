@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutationJoinRoom, useMutationLeaveRoom } from '../../features/hooks/index.hooks';
@@ -20,6 +20,21 @@ export default function JoinGamePage() {
   const joinRoomMutation = useMutationJoinRoom();
   const leaveRoomMutation = useMutationLeaveRoom();
 
+  const handleWebSocketMessage = useCallback((data) => {
+    if (data.type === 'room_update') {
+      setRoom(data.data);
+      setPlayers(data.data.players || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    wsClient.on('message', handleWebSocketMessage);
+    
+    return () => {
+      wsClient.off('message', handleWebSocketMessage);
+    };
+  }, [handleWebSocketMessage]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
@@ -27,17 +42,9 @@ export default function JoinGamePage() {
     }
 
     return () => {
-      wsClient.off('message', handleWebSocketMessage);
       wsClient.disconnect();
     };
   }, [isAuthenticated, navigate]);
-
-  const handleWebSocketMessage = (data) => {
-    if (data.type === 'room_update') {
-      setRoom(data.data);
-      setPlayers(data.data.players || []);
-    }
-  };
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
@@ -50,17 +57,20 @@ export default function JoinGamePage() {
 
     joinRoomMutation.mutate(roomId.trim(), {
       onSuccess: (response) => {
-        const roomData = response.data;
-        setRoom(roomData);
-        setPlayers(roomData.players || []);
+        const roomData = response?.data;
         
-        // Connect to WebSocket
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          wsClient.connect(roomData.id, token);
+        if (roomData && roomData.id) {
+          setRoom(roomData);
+          setPlayers(roomData.players || []);
           
-          // Listen for room updates
-          wsClient.on('message', handleWebSocketMessage);
+          setTimeout(() => {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+              wsClient.connect(roomData.id, token);
+            }
+          }, 100);
+        } else {
+          setError('Failed to join room. Invalid response.');
         }
       },
       onError: (error) => {
@@ -82,9 +92,7 @@ export default function JoinGamePage() {
           setPlayers([]);
           setRoomId('');
         },
-        onError: (error) => {
-          console.error('Failed to leave room:', error);
-          // Disconnect anyway
+        onError: () => {
           wsClient.disconnect();
           setRoom(null);
           setPlayers([]);

@@ -73,7 +73,6 @@ export default function RegisterPage() {
 
       mutate(apiData, {
         onSuccess: () => {
-          console.log('Registration successful!');
           alert('Registration successful! Please log in.')
           setFormData(initialState);
           navigate('/login');

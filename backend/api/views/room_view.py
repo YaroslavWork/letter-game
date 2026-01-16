@@ -11,15 +11,14 @@ from ..utils import broadcast_room_update
 
 
 class CreateRoomView(APIView):
-    """
-    API view to create a new game room.
-    """
     permission_classes = (IsAuthenticated,)
     
     def post(self, request):
         serializer = CreateRoomSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             room = serializer.save()
+            room.refresh_from_db()
+            broadcast_room_update(room)
             room_serializer = RoomSerializer(room)
             return Response(room_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
