@@ -22,6 +22,7 @@ export default function HostGamePage() {
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
+      // Update room and players state in real-time when receiving room updates
       setRoom(data.data);
       setPlayers(data.data.players || []);
     }
@@ -35,6 +36,7 @@ export default function HostGamePage() {
       setPlayers(roomData.players || []);
       setIsConnecting(false);
       
+      // Connect to WebSocket after a short delay to ensure listener is set up
       setTimeout(() => {
         const token = localStorage.getItem('access_token');
         if (token) {
@@ -43,6 +45,16 @@ export default function HostGamePage() {
       }, 100);
     }
   }, []);
+
+  // Set up WebSocket message listener first (before connecting)
+  // This ensures we're ready to receive real-time updates as soon as connected
+  useEffect(() => {
+    wsClient.on('message', handleWebSocketMessage);
+    
+    return () => {
+      wsClient.off('message', handleWebSocketMessage);
+    };
+  }, [handleWebSocketMessage]);
 
   useEffect(() => {
     if (!createRoomMutation.isPending && !createRoomMutation.isError && !room && roomCreatedRef.current && isConnecting) {
@@ -61,14 +73,6 @@ export default function HostGamePage() {
       roomCreatedRef.current = false;
     }
   }, [createRoomMutation.isPending, createRoomMutation.isError, createRoomMutation.isSuccess, createRoomMutation.error, createRoomMutation.data, room, isConnecting, handleRoomCreated]);
-
-  useEffect(() => {
-    wsClient.on('message', handleWebSocketMessage);
-    
-    return () => {
-      wsClient.off('message', handleWebSocketMessage);
-    };
-  }, [handleWebSocketMessage]);
 
   useEffect(() => {
     if (!isAuthenticated) {
