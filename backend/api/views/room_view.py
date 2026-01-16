@@ -106,12 +106,14 @@ class DeletePlayerView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Store the removed user ID before deleting
+        removed_user_id = room_player.user.id
         room = room_player.room
         room_player.delete()
         # Refresh room to get updated players
         room.refresh_from_db()
-        # Broadcast update to all clients
-        broadcast_room_update(room)
+        # Broadcast update to all clients with removal notification
+        broadcast_room_update(room, removed_user_id=removed_user_id)
         return Response({'message': 'Player removed successfully'}, status=status.HTTP_200_OK)
 
 

@@ -80,6 +80,15 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'data': event['data']
         }))
     
+    async def player_removed_notification(self, event):
+        """
+        Send a notification when a player is removed from the room.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'player_removed_notification',
+            'removed_user_id': event['removed_user_id']
+        }))
+    
     async def send_room_update(self):
         room = await self.get_room()
         if room:

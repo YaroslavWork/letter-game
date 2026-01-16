@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutationJoinRoom, useMutationLeaveRoom } from '../../features/hooks/index.hooks';
@@ -16,16 +16,59 @@ export default function JoinGamePage() {
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
   const [error, setError] = useState('');
+  const wasInRoomRef = useRef(false); // Track if user was previously in the room
   
   const joinRoomMutation = useMutationJoinRoom();
   const leaveRoomMutation = useMutationLeaveRoom();
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
-      setRoom(data.data);
-      setPlayers(data.data.players || []);
+      const updatedRoom = data.data;
+      const updatedPlayers = updatedRoom.players || [];
+      
+      // Check if current user is still in the room
+      const isUserStillInRoom = updatedPlayers.some(
+        player => String(player.user_id) === String(user?.id)
+      );
+      
+      // Save previous state before updating
+      const wasInRoom = wasInRoomRef.current;
+      
+      // Update state
+      setRoom(updatedRoom);
+      setPlayers(updatedPlayers);
+      
+      // Update ref to track current state
+      wasInRoomRef.current = isUserStillInRoom;
+      
+      // If user was previously in room but now removed, redirect
+      if (wasInRoom && !isUserStillInRoom) {
+        alert('You have been removed from the room by the host.');
+        wsClient.disconnect();
+        wasInRoomRef.current = false;
+        setRoom(null);
+        setPlayers([]);
+        setRoomId('');
+        navigate('/');
+        return; // Exit early to prevent further processing
+      }
+    } else if (data.type === 'player_removed_notification') {
+      // Check if the removed user is the current user
+      // Handle both string and number comparison
+      const removedUserId = String(data.removed_user_id);
+      const currentUserId = String(user?.id);
+      
+      if (removedUserId === currentUserId) {
+        alert('You have been removed from the room by the host.');
+        wsClient.disconnect();
+        wasInRoomRef.current = false;
+        setRoom(null);
+        setPlayers([]);
+        setRoomId('');
+        navigate('/');
+      }
     }
-  }, []);
+  }, [user, navigate]);
 
   useEffect(() => {
     wsClient.on('message', handleWebSocketMessage);
@@ -61,7 +104,14 @@ export default function JoinGamePage() {
         
         if (roomData && roomData.id) {
           setRoom(roomData);
-          setPlayers(roomData.players || []);
+          const initialPlayers = roomData.players || [];
+          setPlayers(initialPlayers);
+          
+          // Check if user is in the initial players list
+          const userIsInRoom = initialPlayers.some(
+            player => String(player.user_id) === String(user?.id)
+          );
+          wasInRoomRef.current = userIsInRoom;
           
           setTimeout(() => {
             const token = localStorage.getItem('access_token');
@@ -88,12 +138,14 @@ export default function JoinGamePage() {
       leaveRoomMutation.mutate(room.id, {
         onSuccess: () => {
           wsClient.disconnect();
+          wasInRoomRef.current = false;
           setRoom(null);
           setPlayers([]);
           setRoomId('');
         },
         onError: () => {
           wsClient.disconnect();
+          wasInRoomRef.current = false;
           setRoom(null);
           setPlayers([]);
           setRoomId('');
