@@ -8,6 +8,9 @@ from .views.room_view import (
     CreateRoomView, JoinRoomView, LeaveRoomView, 
     RoomDetailView, DeletePlayerView, DeleteRoomView
 )
+from .views.game_session_view import (
+    GetGameTypesView, GetGameSessionView, UpdateGameSessionView
+)
 
 
 urlpatterns = [    
@@ -21,4 +24,7 @@ urlpatterns = [
     path('rooms/<uuid:room_id>/leave/', LeaveRoomView.as_view(), name='leave_room'),
     path('rooms/<uuid:room_id>/delete/', DeleteRoomView.as_view(), name='delete_room'),
     path('rooms/<uuid:room_id>/players/<int:player_id>/delete/', DeletePlayerView.as_view(), name='delete_player'),
+    path('game-types/', GetGameTypesView.as_view(), name='get_game_types'),
+    path('rooms/<uuid:room_id>/game-session/', GetGameSessionView.as_view(), name='get_game_session'),
+    path('rooms/<uuid:room_id>/game-session/update/', UpdateGameSessionView.as_view(), name='update_game_session'),
 ]

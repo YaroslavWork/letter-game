@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from ..models import Room, RoomPlayer
+from .game_session_serializer import GameSessionSerializer
 
 
 class RoomPlayerSerializer(serializers.ModelSerializer):
@@ -19,11 +20,12 @@ class RoomSerializer(serializers.ModelSerializer):
     host_game_name = serializers.CharField(source='host.first_name', read_only=True)
     players = RoomPlayerSerializer(many=True, read_only=True)
     player_count = serializers.IntegerField(source='players.count', read_only=True)
+    game_session = GameSessionSerializer(read_only=True)
     
     class Meta:
         model = Room
         fields = ('id', 'name', 'host_id', 'host_username', 'host_game_name', 
-                  'created_at', 'is_active', 'players', 'player_count')
+                  'created_at', 'is_active', 'players', 'player_count', 'game_session')
 
 
 class CreateRoomSerializer(serializers.ModelSerializer):
@@ -34,6 +36,8 @@ class CreateRoomSerializer(serializers.ModelSerializer):
         fields = ('name',)
     
     def create(self, validated_data):
+        from ..models import GameSession
+        
         user = self.context['request'].user
         room = Room.objects.create(
             host=user,
@@ -41,6 +45,8 @@ class CreateRoomSerializer(serializers.ModelSerializer):
         )
         # Add host as a player
         RoomPlayer.objects.create(room=room, user=user)
+        # Create default game session
+        GameSession.objects.create(room=room, is_random_letter=True, selected_types=[])
         return room
 
 

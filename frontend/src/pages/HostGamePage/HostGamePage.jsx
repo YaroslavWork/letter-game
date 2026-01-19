@@ -13,6 +13,7 @@ export default function HostGamePage() {
   const { user, isAuthenticated } = useAuth();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [gameSession, setGameSession] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const roomCreatedRef = useRef(false);
   
@@ -25,6 +26,10 @@ export default function HostGamePage() {
       // Update room and players state in real-time when receiving room updates
       setRoom(data.data);
       setPlayers(data.data.players || []);
+      // Update game session if available
+      if (data.data.game_session) {
+        setGameSession(data.data.game_session);
+      }
     }
   }, []);
 
@@ -34,6 +39,9 @@ export default function HostGamePage() {
     if (roomData && roomData.id) {
       setRoom(roomData);
       setPlayers(roomData.players || []);
+      if (roomData.game_session) {
+        setGameSession(roomData.game_session);
+      }
       setIsConnecting(false);
       
       // Store room info in localStorage for reconnection
@@ -96,6 +104,9 @@ export default function HostGamePage() {
       if (roomData && roomData.id) {
         setRoom(roomData);
         setPlayers(roomData.players || []);
+        if (roomData.game_session) {
+          setGameSession(roomData.game_session);
+        }
         setIsConnecting(false);
         roomCreatedRef.current = true;
         
@@ -242,7 +253,36 @@ export default function HostGamePage() {
         ))}
       </div>
 
+      {gameSession && (
+        <div className={styles.gameRules}>
+          <Header text="Current Game Rules" />
+          <div className={styles.ruleItem}>
+            <Text text={`Letter: ${gameSession.final_letter || (gameSession.is_random_letter ? 'Random (will be selected when game starts)' : 'Not set')}`} />
+          </div>
+          {gameSession.selected_types && gameSession.selected_types.length > 0 && (
+            <div className={styles.ruleItem}>
+              <Text text="Selected Types:" />
+              <div className={styles.typesList}>
+                {gameSession.selected_types_display?.map((type, index) => (
+                  <div key={index} className={styles.typeTag}>
+                    <Text text={type} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
+            <div className={styles.ruleItem}>
+              <Text text="No game types configured yet. Click 'Configure Game Rules' to set up the game." />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={styles.actions}>
+        <Button onButtonClick={() => navigate(`/host/rules/${room.id}`)}>
+          Configure Game Rules
+        </Button>
         <Button onButtonClick={handleDeleteRoom}>
           Delete Room
         </Button>

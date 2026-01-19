@@ -58,3 +58,25 @@ export const useMutationDeletePlayer = () => {
     mutationFn: ({ roomId, playerId }) => api.deletePlayer(roomId, playerId),
   });
 };
+
+// Game session hooks
+export const useGameTypes = () => {
+  return useQuery({
+    queryKey: ['gameTypes'],
+    queryFn: () => api.getGameTypes(),
+  });
+};
+
+export const useGameSession = (roomId) => {
+  return useQuery({
+    queryKey: ['gameSession', roomId],
+    queryFn: () => api.getGameSession(roomId),
+    enabled: !!roomId,
+  });
+};
+
+export const useMutationUpdateGameSession = () => {
+  return useMutation({
+    mutationFn: ({ roomId, data }) => api.updateGameSession(roomId, data),
+  });
+};

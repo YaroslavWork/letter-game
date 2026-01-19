@@ -1,0 +1,75 @@
+from rest_framework import serializers
+from ..models import GameSession, GAME_TYPE_CHOICES
+
+
+class GameSessionSerializer(serializers.ModelSerializer):
+    selected_types_display = serializers.SerializerMethodField()
+    final_letter = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = GameSession
+        fields = ('id', 'letter', 'is_random_letter', 'selected_types', 
+                  'selected_types_display', 'final_letter', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at')
+    
+    def get_selected_types_display(self, obj):
+        """Returns list of display names for selected types."""
+        return obj.get_selected_types_display()
+    
+    def get_final_letter(self, obj):
+        """Returns the final letter to use (or None if not set)."""
+        return obj.get_final_letter()
+    
+    def validate_letter(self, value):
+        """Validate that letter is a single uppercase letter."""
+        if value:
+            value = value.upper().strip()
+            if len(value) != 1 or not value.isalpha():
+                raise serializers.ValidationError("Letter must be a single alphabetic character.")
+            # Polish alphabet validation (excluding Q, V, X)
+            if value in ['Q', 'V', 'X']:
+                raise serializers.ValidationError("Letter Q, V, and X are not commonly used in Polish. Please choose another letter.")
+        return value
+    
+    def validate_selected_types(self, value):
+        """Validate that selected types are valid choices."""
+        valid_types = [choice[0] for choice in GAME_TYPE_CHOICES]
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Selected types must be a list.")
+        if not value:
+            raise serializers.ValidationError("At least one game type must be selected.")
+        for type_key in value:
+            if type_key not in valid_types:
+                raise serializers.ValidationError(f"Invalid game type: {type_key}")
+        return value
+
+
+class UpdateGameSessionSerializer(serializers.ModelSerializer):
+    """Serializer for updating game session rules."""
+    
+    class Meta:
+        model = GameSession
+        fields = ('letter', 'is_random_letter', 'selected_types')
+    
+    def validate_letter(self, value):
+        """Validate that letter is a single uppercase letter."""
+        if value:
+            value = value.upper().strip()
+            if len(value) != 1 or not value.isalpha():
+                raise serializers.ValidationError("Letter must be a single alphabetic character.")
+            # Polish alphabet validation (excluding Q, V, X)
+            if value in ['Q', 'V', 'X']:
+                raise serializers.ValidationError("Letter Q, V, and X are not commonly used in Polish. Please choose another letter.")
+        return value
+    
+    def validate_selected_types(self, value):
+        """Validate that selected types are valid choices."""
+        valid_types = [choice[0] for choice in GAME_TYPE_CHOICES]
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Selected types must be a list.")
+        if not value:
+            raise serializers.ValidationError("At least one game type must be selected.")
+        for type_key in value:
+            if type_key not in valid_types:
+                raise serializers.ValidationError(f"Invalid game type: {type_key}")
+        return value

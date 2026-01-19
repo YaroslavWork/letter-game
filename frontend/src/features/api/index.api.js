@@ -11,3 +11,8 @@ export const getRoom = (roomId) => axios.get(`/rooms/${roomId}/`);
 export const leaveRoom = (roomId) => axios.post(`/rooms/${roomId}/leave/`);
 export const deleteRoom = (roomId) => axios.delete(`/rooms/${roomId}/delete/`);
 export const deletePlayer = (roomId, playerId) => axios.delete(`/rooms/${roomId}/players/${playerId}/delete/`);
+
+// Game session APIs
+export const getGameTypes = () => axios.get('/game-types/');
+export const getGameSession = (roomId) => axios.get(`/rooms/${roomId}/game-session/`);
+export const updateGameSession = (roomId, data) => axios.put(`/rooms/${roomId}/game-session/update/`, data);

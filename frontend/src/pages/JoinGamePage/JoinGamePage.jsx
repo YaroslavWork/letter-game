@@ -15,6 +15,7 @@ export default function JoinGamePage() {
   const [roomId, setRoomId] = useState('');
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [gameSession, setGameSession] = useState(null);
   const [error, setError] = useState('');
   const wasInRoomRef = useRef(false); // Track if user was previously in the room
   
@@ -37,6 +38,14 @@ export default function JoinGamePage() {
       // Update state
       setRoom(updatedRoom);
       setPlayers(updatedPlayers);
+      
+      // Update game session if available
+      if (updatedRoom.game_session) {
+        setGameSession(updatedRoom.game_session);
+      } else {
+        // Reset game session if not present
+        setGameSession(null);
+      }
       
       // Update ref to track current state
       wasInRoomRef.current = isUserStillInRoom;
@@ -98,11 +107,20 @@ export default function JoinGamePage() {
 
     // If reconnecting, try to load existing room
     if (isReconnecting && existingRoomData && !room) {
-      const roomData = existingRoomData?.data || existingRoomData;
+      // Handle different response structures
+      const roomData = existingRoomData?.data?.data || existingRoomData?.data || existingRoomData;
       if (roomData && roomData.id) {
         setRoom(roomData);
         const initialPlayers = roomData.players || [];
         setPlayers(initialPlayers);
+        
+        // Set game session if available
+        if (roomData.game_session) {
+          setGameSession(roomData.game_session);
+        } else {
+          // Reset game session if not present
+          setGameSession(null);
+        }
         
         // Check if user is in the initial players list
         const userIsInRoom = initialPlayers.some(
@@ -137,12 +155,21 @@ export default function JoinGamePage() {
 
     joinRoomMutation.mutate(roomId.trim(), {
       onSuccess: (response) => {
-        const roomData = response?.data;
+        // Handle different response structures
+        const roomData = response?.data?.data || response?.data || response;
         
         if (roomData && roomData.id) {
           setRoom(roomData);
           const initialPlayers = roomData.players || [];
           setPlayers(initialPlayers);
+          
+          // Set game session if available
+          if (roomData.game_session) {
+            setGameSession(roomData.game_session);
+          } else {
+            // Reset game session if not present
+            setGameSession(null);
+          }
           
           // Store room info in localStorage for reconnection
           localStorage.setItem('room_id', roomData.id);
@@ -260,6 +287,37 @@ export default function JoinGamePage() {
             <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}`} />
           </div>
         ))}
+      </div>
+
+      <div className={styles.gameRules}>
+        <Header text="Game Rules" />
+        {gameSession ? (
+          <>
+            <div className={styles.ruleItem}>
+              <Text text={`Letter: ${gameSession.final_letter || (gameSession.is_random_letter ? 'Random (will be selected when game starts)' : 'Not set')}`} />
+            </div>
+            {gameSession.selected_types && gameSession.selected_types.length > 0 ? (
+              <div className={styles.ruleItem}>
+                <Text text="Selected Types:" />
+                <div className={styles.typesList}>
+                  {gameSession.selected_types_display?.map((type, index) => (
+                    <div key={index} className={styles.typeTag}>
+                      <Text text={type} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className={styles.ruleItem}>
+                <Text text="Game types not yet configured by host" />
+              </div>
+            )}
+          </>
+        ) : (
+          <div className={styles.ruleItem}>
+            <Text text="Game rules not yet configured by host" />
+          </div>
+        )}
       </div>
 
       <div className={styles.actions}>
