@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMutationJoinRoom, useMutationLeaveRoom } from '../../features/hooks/index.hooks';
+import { useMutationJoinRoom, useMutationLeaveRoom, useRoom } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import { Input } from '../../components/UI/Input/Input';
 import Button from '../../components/UI/Button/Button';
@@ -45,6 +45,9 @@ export default function JoinGamePage() {
       if (wasInRoom && !isUserStillInRoom) {
         alert('You have been removed from the room by the host.');
         wsClient.disconnect();
+        // Clear stored room info
+        localStorage.removeItem('room_id');
+        localStorage.removeItem('room_type');
         wasInRoomRef.current = false;
         setRoom(null);
         setPlayers([]);
@@ -61,6 +64,9 @@ export default function JoinGamePage() {
       if (removedUserId === currentUserId) {
         alert('You have been removed from the room by the host.');
         wsClient.disconnect();
+        // Clear stored room info
+        localStorage.removeItem('room_id');
+        localStorage.removeItem('room_type');
         wasInRoomRef.current = false;
         setRoom(null);
         setPlayers([]);
@@ -78,16 +84,47 @@ export default function JoinGamePage() {
     };
   }, [handleWebSocketMessage]);
 
+  // Check if we're reconnecting to an existing room
+  const storedRoomId = localStorage.getItem('room_id');
+  const storedRoomType = localStorage.getItem('room_type');
+  const isReconnecting = storedRoomId && storedRoomType === 'join';
+  const { data: existingRoomData, isLoading: isLoadingRoom } = useRoom(isReconnecting ? storedRoomId : null);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
 
+    // If reconnecting, try to load existing room
+    if (isReconnecting && existingRoomData && !room) {
+      const roomData = existingRoomData?.data || existingRoomData;
+      if (roomData && roomData.id) {
+        setRoom(roomData);
+        const initialPlayers = roomData.players || [];
+        setPlayers(initialPlayers);
+        
+        // Check if user is in the initial players list
+        const userIsInRoom = initialPlayers.some(
+          player => String(player.user_id) === String(user?.id)
+        );
+        wasInRoomRef.current = userIsInRoom;
+        
+        // Connect to WebSocket if not already connected
+        if (!wsClient.isConnected() && wsClient.getState() !== 'CONNECTING') {
+          const token = localStorage.getItem('access_token');
+          if (token) {
+            wsClient.connect(roomData.id, token);
+          }
+        }
+      }
+    }
+
     return () => {
-      wsClient.disconnect();
+      // Don't disconnect on unmount if we're still in the room
+      // Only disconnect if navigating away
     };
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, isReconnecting, existingRoomData, room, user]);
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
@@ -106,6 +143,10 @@ export default function JoinGamePage() {
           setRoom(roomData);
           const initialPlayers = roomData.players || [];
           setPlayers(initialPlayers);
+          
+          // Store room info in localStorage for reconnection
+          localStorage.setItem('room_id', roomData.id);
+          localStorage.setItem('room_type', 'join');
           
           // Check if user is in the initial players list
           const userIsInRoom = initialPlayers.some(
@@ -138,6 +179,9 @@ export default function JoinGamePage() {
       leaveRoomMutation.mutate(room.id, {
         onSuccess: () => {
           wsClient.disconnect();
+          // Clear stored room info
+          localStorage.removeItem('room_id');
+          localStorage.removeItem('room_type');
           wasInRoomRef.current = false;
           setRoom(null);
           setPlayers([]);
@@ -145,6 +189,9 @@ export default function JoinGamePage() {
         },
         onError: () => {
           wsClient.disconnect();
+          // Clear stored room info
+          localStorage.removeItem('room_id');
+          localStorage.removeItem('room_type');
           wasInRoomRef.current = false;
           setRoom(null);
           setPlayers([]);
@@ -155,6 +202,15 @@ export default function JoinGamePage() {
       navigate('/');
     }
   };
+
+  if (isReconnecting && isLoadingRoom) {
+    return (
+      <div className={styles.joinGamePage}>
+        <Header text="Join Game - Panstwa Miasto" />
+        <Text text="Reconnecting to room..." />
+      </div>
+    );
+  }
 
   if (!room) {
     return (
