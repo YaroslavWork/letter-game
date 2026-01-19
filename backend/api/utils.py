@@ -34,3 +34,22 @@ def broadcast_room_update(room, removed_user_id=None):
                     'removed_user_id': removed_user_id
                 }
             )
+
+
+def broadcast_room_deleted(room_id):
+    """
+    Broadcast room deletion to all WebSocket clients in the room.
+    
+    Args:
+        room_id: The room ID (as string) that was deleted
+    """
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        # Send room deleted notification to all clients in the room
+        async_to_sync(channel_layer.group_send)(
+            f'room_{room_id}',
+            {
+                'type': 'room_deleted_notification',
+                'room_id': room_id
+            }
+        )

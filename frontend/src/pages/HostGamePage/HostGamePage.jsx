@@ -43,8 +43,16 @@ export default function HostGamePage() {
           return newSession;
         });
       }
+    } else if (data.type === 'room_deleted_notification') {
+      // Room was deleted by host
+      alert('The room has been deleted.');
+      wsClient.disconnect();
+      // Clear stored room info
+      localStorage.removeItem('room_id');
+      localStorage.removeItem('room_type');
+      navigate('/');
     }
-  }, []);
+  }, [navigate]);
 
   const lastResponseRef = useRef(null);
 

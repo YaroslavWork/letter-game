@@ -97,6 +97,18 @@ export default function JoinGamePage() {
         setRoomId('');
         navigate('/');
       }
+    } else if (data.type === 'room_deleted_notification') {
+      // Room was deleted by host
+      alert('The room has been deleted by the host.');
+      wsClient.disconnect();
+      // Clear stored room info
+      localStorage.removeItem('room_id');
+      localStorage.removeItem('room_type');
+      wasInRoomRef.current = false;
+      setRoom(null);
+      setPlayers([]);
+      setRoomId('');
+      navigate('/');
     }
   }, [user, navigate]);
 

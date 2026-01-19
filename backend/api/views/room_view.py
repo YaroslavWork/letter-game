@@ -3,11 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from ..models import Room, RoomPlayer
+from ..models import Room, RoomPlayer, GameSession
 from ..serializers.room_serializer import (
     RoomSerializer, CreateRoomSerializer, JoinRoomSerializer, RoomPlayerSerializer
 )
-from ..utils import broadcast_room_update
+from ..utils import broadcast_room_update, broadcast_room_deleted
 
 
 class CreateRoomView(APIView):
@@ -120,6 +120,7 @@ class DeletePlayerView(APIView):
 class DeleteRoomView(APIView):
     """
     API view for host to delete the entire room.
+    Removes all players and game session when room is deleted.
     """
     permission_classes = (IsAuthenticated,)
     
@@ -133,6 +134,24 @@ class DeleteRoomView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # Store room ID for broadcasting before deletion
+        room_id_str = str(room.id)
+        
+        # Delete all players from the room
+        RoomPlayer.objects.filter(room=room).delete()
+        
+        # Delete game session if it exists
+        try:
+            game_session = GameSession.objects.get(room=room)
+            game_session.delete()
+        except GameSession.DoesNotExist:
+            pass
+        
+        # Mark room as inactive
         room.is_active = False
         room.save()
+        
+        # Broadcast room deletion to all connected clients
+        broadcast_room_deleted(room_id_str)
+        
         return Response({'message': 'Room deleted successfully'}, status=status.HTTP_200_OK)

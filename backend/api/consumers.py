@@ -89,6 +89,15 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'removed_user_id': event['removed_user_id']
         }))
     
+    async def room_deleted_notification(self, event):
+        """
+        Send a notification when the room is deleted.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'room_deleted_notification',
+            'room_id': event['room_id']
+        }))
+    
     async def send_room_update(self):
         room = await self.get_room()
         if room:
