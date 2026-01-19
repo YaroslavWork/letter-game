@@ -40,8 +40,23 @@ export default function JoinGamePage() {
       setPlayers(updatedPlayers);
       
       // Update game session if available
+      // Only update if the game session data actually changed
+      // This prevents the letter from changing when players join/leave
       if (updatedRoom.game_session) {
-        setGameSession(updatedRoom.game_session);
+        // Use functional update to only update if data actually changed
+        setGameSession(prevSession => {
+          const newSession = updatedRoom.game_session;
+          // If it's a random letter, don't update final_letter (it will be null/undefined)
+          // Only update if the configuration actually changed
+          if (prevSession && 
+              prevSession.is_random_letter === newSession.is_random_letter &&
+              prevSession.letter === newSession.letter &&
+              JSON.stringify(prevSession.selected_types) === JSON.stringify(newSession.selected_types)) {
+            // No actual change in game rules, return previous session to prevent re-render
+            return prevSession;
+          }
+          return newSession;
+        });
       } else {
         // Reset game session if not present
         setGameSession(null);

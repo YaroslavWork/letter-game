@@ -26,9 +26,22 @@ export default function HostGamePage() {
       // Update room and players state in real-time when receiving room updates
       setRoom(data.data);
       setPlayers(data.data.players || []);
-      // Update game session if available
+      // Update game session if available, but only if it actually changed
+      // This prevents the letter from changing when players join/leave
       if (data.data.game_session) {
-        setGameSession(data.data.game_session);
+        setGameSession(prevSession => {
+          const newSession = data.data.game_session;
+          // If it's a random letter, don't update final_letter (it will be null/undefined)
+          // Only update if the configuration actually changed
+          if (prevSession && 
+              prevSession.is_random_letter === newSession.is_random_letter &&
+              prevSession.letter === newSession.letter &&
+              JSON.stringify(prevSession.selected_types) === JSON.stringify(newSession.selected_types)) {
+            // No actual change in game rules, return previous session to prevent re-render
+            return prevSession;
+          }
+          return newSession;
+        });
       }
     }
   }, []);

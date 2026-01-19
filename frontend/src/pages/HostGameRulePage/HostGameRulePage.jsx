@@ -27,10 +27,16 @@ export default function HostGameRulePage() {
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
-      // Update game session from room data
+      // Update game session from room data only if it actually changed
+      // This prevents the letter from changing when players join/leave
       if (data.data?.game_session) {
         const session = data.data.game_session;
-        setLetter(session.letter || '');
+        // Only update if the game session configuration actually changed
+        // Don't update letter if it's random (final_letter will be null/undefined)
+        // Only update letter if it's a specific letter that changed
+        if (!session.is_random_letter && session.letter) {
+          setLetter(session.letter || '');
+        }
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
       }
@@ -50,7 +56,14 @@ export default function HostGameRulePage() {
     if (gameSessionData) {
       const session = gameSessionData?.data || gameSessionData;
       if (session) {
-        setLetter(session.letter || '');
+        // Only set letter if it's a specific letter (not random)
+        // This prevents the letter from changing unnecessarily
+        if (!session.is_random_letter && session.letter) {
+          setLetter(session.letter || '');
+        } else if (session.is_random_letter) {
+          // Clear letter if switching to random
+          setLetter('');
+        }
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
       }

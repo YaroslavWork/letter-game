@@ -17,8 +17,14 @@ class GameSessionSerializer(serializers.ModelSerializer):
         return obj.get_selected_types_display()
     
     def get_final_letter(self, obj):
-        """Returns the final letter to use (or None if not set)."""
-        return obj.get_final_letter()
+        """
+        Returns the final letter to use (or None if random and not yet determined).
+        For random letters, returns None to prevent the letter from changing on every update.
+        """
+        final_letter = obj.get_final_letter()
+        # If it's a random letter and None is returned, that's expected
+        # The frontend will show "Random" message
+        return final_letter
     
     def validate_letter(self, value):
         """Validate that letter is a single uppercase letter."""

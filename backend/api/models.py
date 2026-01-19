@@ -70,15 +70,15 @@ class GameSession(models.Model):
     
     def get_final_letter(self):
         """
-        Returns the final letter to use. If is_random_letter is True and letter is None,
-        generates a random Polish letter.
+        Returns the final letter to use. 
+        - If a specific letter is set, returns that letter.
+        - If is_random_letter is True, returns None (letter will be determined when game starts).
+        - This prevents generating a new random letter on every serialization.
         """
         if not self.is_random_letter and self.letter:
             return self.letter.upper()
-        elif self.is_random_letter:
-            # Polish alphabet letters (excluding Q, V, X which are less common)
-            polish_letters = [c for c in string.ascii_uppercase if c not in ['Q', 'V', 'X']]
-            return random.choice(polish_letters)
+        # For random letters, return None - the letter will be determined when the game starts
+        # This prevents the letter from changing on every room update
         return None
     
     def get_selected_types_display(self):
