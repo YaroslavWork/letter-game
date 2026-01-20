@@ -89,6 +89,15 @@
   width: 100%;
 }
 
+.success {
+  padding: 1rem;
+  background-color: #efe;
+  border: 1px solid #cfc;
+  border-radius: 6px;
+  color: #3c3;
+  width: 100%;
+}
+
 .actions {
   display: flex;
   gap: 1rem;

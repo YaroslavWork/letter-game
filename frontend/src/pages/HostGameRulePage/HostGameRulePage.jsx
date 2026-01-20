@@ -19,6 +19,7 @@ export default function HostGameRulePage() {
   const [isRandomLetter, setIsRandomLetter] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const { data: roomData, isLoading: isLoadingRoom } = useRoom(roomId);
   const { data: gameTypesData, isLoading: isLoadingTypes } = useGameTypes();
@@ -40,6 +41,7 @@ export default function HostGameRulePage() {
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
       }
+      // Do NOT navigate - stay on the configuration page
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
       alert('The room has been deleted.');
@@ -92,6 +94,12 @@ export default function HostGameRulePage() {
         return;
       }
       
+      // Store room info in localStorage for navigation back to room
+      if (room && room.id) {
+        localStorage.setItem('room_id', room.id);
+        localStorage.setItem('room_type', 'host');
+      }
+      
       // Connect to WebSocket if not already connected
       if (room && room.id && (!wsClient.isConnected() && wsClient.getState() !== 'CONNECTING')) {
         const token = localStorage.getItem('access_token');
@@ -132,6 +140,7 @@ export default function HostGameRulePage() {
 
   const handleSave = () => {
     setError('');
+    setSuccessMessage('');
 
     if (!isRandomLetter && !letter) {
       setError('Please enter a letter or select random letter');
@@ -169,14 +178,21 @@ export default function HostGameRulePage() {
           queryClient.invalidateQueries({ queryKey: ['room', roomId] });
           refetchGameSession();
           
-          // Clear any errors
+          // Clear any errors and show success message
           setError('');
+          setSuccessMessage('Game rules saved successfully!');
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setSuccessMessage('');
+          }, 3000);
         },
         onError: (error) => {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              'Failed to update game rules. Please try again.';
           setError(errorMessage);
+          setSuccessMessage('');
         }
       }
     );
@@ -252,6 +268,12 @@ export default function HostGameRulePage() {
       {error && (
         <div className={styles.error}>
           <Text text={error} />
+        </div>
+      )}
+
+      {successMessage && (
+        <div className={styles.success}>
+          <Text text={successMessage} />
         </div>
       )}
 
