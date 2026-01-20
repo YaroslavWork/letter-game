@@ -141,7 +141,7 @@ export default function MainPage () {
 
     return (
         <div className={styles.mainPage}>
-            <Header text="Panstwa Miasto" />
+            <Header text="Letter Game" />
             
             {user && (
                 <div className={styles.userInfo}>

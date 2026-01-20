@@ -213,7 +213,7 @@ export default function GameSessionPage() {
 
   return (
     <div className={styles.gameSessionPage}>
-      <Header text="Game Session - Panstwa Miasto" />
+      <Header text={room ? `Game Session - ${room.name}` : "Game Session"} />
       
       <div className={styles.gameInfo}>
         <div className={styles.letterDisplay}>

@@ -26,7 +26,7 @@ GAME_TYPE_CHOICES = [
 class Room(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     host = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hosted_rooms')
-    name = models.CharField(max_length=100, default='Panstwa Miasto Room')
+    name = models.CharField(max_length=100, default='Letter Game Room')
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     

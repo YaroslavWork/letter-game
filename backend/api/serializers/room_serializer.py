@@ -29,7 +29,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
 
 class CreateRoomSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(max_length=100, required=False, default='Panstwa Miasto Room')
+    name = serializers.CharField(max_length=100, required=False, default='Letter Game Room')
     
     class Meta:
         model = Room
@@ -41,7 +41,7 @@ class CreateRoomSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         room = Room.objects.create(
             host=user,
-            name=validated_data.get('name', 'Panstwa Miasto Room')
+            name=validated_data.get('name', 'Letter Game Room')
         )
         # Add host as a player
         RoomPlayer.objects.create(room=room, user=user)

@@ -6,6 +6,7 @@ import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
 import Header from '../../components/UI/Header/Header';
+import { Input } from '../../components/UI/Input/Input';
 import styles from './HostGamePage.module.css';
 
 export default function HostGamePage() {
@@ -15,6 +16,8 @@ export default function HostGamePage() {
   const [players, setPlayers] = useState([]);
   const [gameSession, setGameSession] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [roomName, setRoomName] = useState('');
+  const [roomNameError, setRoomNameError] = useState('');
   const roomCreatedRef = useRef(false);
   
   const createRoomMutation = useMutationCreateRoom();
@@ -154,39 +157,46 @@ export default function HostGamePage() {
       }
     }
 
-    // If not reconnecting and haven't created room yet, create a new one
-    if (!isReconnecting && !roomCreatedRef.current) {
-      roomCreatedRef.current = true;
-      setIsConnecting(true);
+    // Don't auto-create room - wait for user to enter room name and click create
+  }, [isAuthenticated, navigate, createRoomMutation, handleRoomCreated, isReconnecting, existingRoomData, room]);
 
-      const createRoom = async () => {
-        try {
-          const response = await createRoomMutation.mutateAsync({ name: 'Panstwa Miasto Room' });
-          lastResponseRef.current = response;
-          const roomData = response?.data || response;
-          
-          if (roomData && roomData.id) {
-            handleRoomCreated(roomData);
-          } else {
-            alert('Failed to create room. Invalid response.');
-            roomCreatedRef.current = false;
-            setIsConnecting(false);
-          }
-        } catch (error) {
-          alert('Failed to create room. Please try again.');
+  const handleCreateRoom = () => {
+    if (!roomName.trim()) {
+      setRoomNameError('Please enter a room name');
+      return;
+    }
+
+    if (roomName.trim().length > 100) {
+      setRoomNameError('Room name must be 100 characters or less');
+      return;
+    }
+
+    setRoomNameError('');
+    roomCreatedRef.current = true;
+    setIsConnecting(true);
+
+    const createRoom = async () => {
+      try {
+        const response = await createRoomMutation.mutateAsync({ name: roomName.trim() });
+        lastResponseRef.current = response;
+        const roomData = response?.data || response;
+        
+        if (roomData && roomData.id) {
+          handleRoomCreated(roomData);
+        } else {
+          alert('Failed to create room. Invalid response.');
           roomCreatedRef.current = false;
           setIsConnecting(false);
         }
-      };
-
-      createRoom();
-    }
-
-    return () => {
-      // Don't disconnect on unmount if we're still in the room
-      // Only disconnect if navigating away
+      } catch (error) {
+        alert('Failed to create room. Please try again.');
+        roomCreatedRef.current = false;
+        setIsConnecting(false);
+      }
     };
-  }, [isAuthenticated, navigate, createRoomMutation, handleRoomCreated, isReconnecting, existingRoomData, room]);
+
+    createRoom();
+  };
 
   const handleDeleteRoom = () => {
     if (room && window.confirm('Are you sure you want to delete this room?')) {
@@ -242,10 +252,18 @@ export default function HostGamePage() {
     }
   };
 
-  if (isConnecting || (!room && roomCreatedRef.current && !createRoomMutation.isError) || (isReconnecting && isLoadingRoom)) {
+  if (isReconnecting && isLoadingRoom) {
     return (
       <div className={styles.hostGamePage}>
-        <Text text={isReconnecting ? "Reconnecting to room..." : "Creating room..."} />
+        <Text text="Reconnecting to room..." />
+      </div>
+    );
+  }
+
+  if (isConnecting || (!room && roomCreatedRef.current && !createRoomMutation.isError)) {
+    return (
+      <div className={styles.hostGamePage}>
+        <Text text="Creating room..." />
       </div>
     );
   }
@@ -253,10 +271,19 @@ export default function HostGamePage() {
   if (!room && createRoomMutation.isError) {
     return (
       <div className={styles.hostGamePage}>
+        <Header text="Host Game" />
         <Text text="Failed to create room" />
         <Button onButtonClick={() => {
           roomCreatedRef.current = false;
           setIsConnecting(false);
+          setRoomName('');
+          setRoomNameError('');
+        }}>Try Again</Button>
+        <Button onButtonClick={() => {
+          roomCreatedRef.current = false;
+          setIsConnecting(false);
+          setRoomName('');
+          setRoomNameError('');
           navigate('/');
         }}>Go Back</Button>
       </div>
@@ -266,12 +293,51 @@ export default function HostGamePage() {
   if (!room && roomCreatedRef.current && !isConnecting) {
     return (
       <div className={styles.hostGamePage}>
+        <Header text="Host Game" />
         <Text text="Failed to create room. Please try again." />
         <Button onButtonClick={() => {
           roomCreatedRef.current = false;
           setIsConnecting(false);
+          setRoomName('');
+          setRoomNameError('');
+        }}>Try Again</Button>
+        <Button onButtonClick={() => {
+          roomCreatedRef.current = false;
+          setIsConnecting(false);
+          setRoomName('');
+          setRoomNameError('');
           navigate('/');
         }}>Go Back</Button>
+      </div>
+    );
+  }
+
+  if (!room && !isReconnecting) {
+    return (
+      <div className={styles.hostGamePage}>
+        <Header text="Host Game" />
+        <div className={styles.createRoomForm}>
+          <Input
+            type="text"
+            name="roomName"
+            value={roomName}
+            onChange={(e) => {
+              setRoomName(e.target.value);
+              setRoomNameError('');
+            }}
+            placeholder="Enter room name (e.g., My Game Room)"
+            error={roomNameError}
+          />
+          <Button 
+            onButtonClick={handleCreateRoom}
+            disabled={createRoomMutation.isPending || !roomName.trim()}
+          >
+            {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
+          </Button>
+          <Button onButtonClick={() => navigate('/')}>
+            Back
+          </Button>
+        </div>
       </div>
     );
   }
@@ -279,18 +345,18 @@ export default function HostGamePage() {
   if (!room) {
     return (
       <div className={styles.hostGamePage}>
-        <Text text="Initializing room..." />
+        <Text text="Loading room..." />
       </div>
     );
   }
 
   return (
     <div className={styles.hostGamePage}>
-      <Header text="Host Game - Panstwa Miasto" />
+      <Header text={`Host Game - ${room.name || 'Room'}`} />
       
       <div className={styles.roomInfo}>
         <Text text={`Room ID: ${room.id}`} />
-        <Text text={`Room Name: ${room.name}`} />
+        <Text text={`Room Name: ${room.name || 'Unnamed Room'}`} />
         <Text text={`Players: ${players.length}`} />
       </div>
 

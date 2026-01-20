@@ -296,7 +296,7 @@ export default function JoinGamePage() {
   if (isReconnecting && isLoadingRoom) {
     return (
       <div className={styles.joinGamePage}>
-        <Header text="Join Game - Panstwa Miasto" />
+        <Header text="Join Game" />
         <Text text="Reconnecting to room..." />
       </div>
     );
@@ -305,7 +305,7 @@ export default function JoinGamePage() {
   if (!room) {
     return (
       <div className={styles.joinGamePage}>
-        <Header text="Join Game - Panstwa Miasto" />
+        <Header text="Join Game" />
         
         <form onSubmit={handleJoinRoom} className={styles.joinForm}>
           <Input
@@ -334,7 +334,7 @@ export default function JoinGamePage() {
 
   return (
     <div className={styles.joinGamePage}>
-      <Header text="Joined Room - Panstwa Miasto" />
+      <Header text={room ? `Joined Room - ${room.name}` : "Joined Room"} />
       
       <div className={styles.roomInfo}>
         <Text text={`Room ID: ${room.id}`} />
