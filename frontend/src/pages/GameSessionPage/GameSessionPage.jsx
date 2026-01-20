@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRoom, useGameSession } from '../../features/hooks/index.hooks';
+import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -15,6 +15,11 @@ export default function GameSessionPage() {
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
   const [gameSession, setGameSession] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const submitAnswerMutation = useMutationSubmitAnswer();
+  const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId);
 
   const { data: existingRoomData, isLoading: isLoadingRoom } = useRoom(roomId);
   const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession } = useGameSession(roomId);
@@ -26,6 +31,7 @@ export default function GameSessionPage() {
       if (data.data.game_session) {
         setGameSession(data.data.game_session);
       }
+      refetchScores();
     } else if (data.type === 'game_started_notification') {
       if (data.game_session) {
         setGameSession(data.game_session);
@@ -42,7 +48,7 @@ export default function GameSessionPage() {
       localStorage.removeItem('room_type');
       navigate('/');
     }
-  }, [navigate, roomId, refetchGameSession]);
+  }, [navigate, roomId, refetchGameSession, refetchScores]);
 
   useEffect(() => {
     wsClient.on('message', handleWebSocketMessage);
@@ -162,6 +168,41 @@ export default function GameSessionPage() {
 
   const displayTypes = getDisplayTypes(gameSession);
 
+  const handleAnswerChange = (gameType, value) => {
+    setAnswers(prev => ({
+      ...prev,
+      [gameType]: value
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!roomId || !gameSession) return;
+
+    const answersToSubmit = {};
+    gameSession.selected_types.forEach(type => {
+      answersToSubmit[type] = answers[type] || '';
+    });
+
+    submitAnswerMutation.mutate(
+      { roomId, data: { answers: answersToSubmit } },
+      {
+        onSuccess: () => {
+          setIsSubmitted(true);
+          refetchScores();
+          alert('Answers submitted successfully!');
+        },
+        onError: (error) => {
+          const errorMessage = error.response?.data?.error || 
+                             error.response?.data?.detail ||
+                             'Failed to submit answers. Please try again.';
+          alert(errorMessage);
+        }
+      }
+    );
+  };
+
+  const playerScores = playerScoresData?.data || playerScoresData || [];
+
   return (
     <div className={styles.gameSessionPage}>
       <Header text="Game Session - Panstwa Miasto" />
@@ -181,11 +222,14 @@ export default function GameSessionPage() {
 
       <div className={styles.playersList}>
         <Header text="Players" />
-        {players.map((player) => (
-          <div key={player.id} className={styles.playerItem}>
-            <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}`} />
-          </div>
-        ))}
+        {players.map((player) => {
+          const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
+          return (
+            <div key={player.id} className={styles.playerItem}>
+              <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}${playerScore ? ` - ${playerScore.points} points` : ''}`} />
+            </div>
+          );
+        })}
       </div>
 
       {gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 ? (
@@ -209,16 +253,35 @@ export default function GameSessionPage() {
         <Header text="Game Area" />
         <Text text="Start playing! Fill in words for each category starting with the letter above." />
         {gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 ? (
-          displayTypes.map((type, index) => (
-            <div key={index} className={styles.inputField}>
-              <Text text={`${type}:`} />
-              <input 
-                type="text" 
-                className={styles.textInput}
-                placeholder={`Enter a word for ${type}`}
-              />
-            </div>
-          ))
+          <>
+            {displayTypes.map((type, index) => {
+              const gameTypeKey = gameSession.selected_types[index];
+              return (
+                <div key={index} className={styles.inputField}>
+                  <Text text={`${type}:`} />
+                  <input 
+                    type="text" 
+                    className={styles.textInput}
+                    placeholder={`Enter a word for ${type}`}
+                    value={answers[gameTypeKey] || ''}
+                    onChange={(e) => handleAnswerChange(gameTypeKey, e.target.value)}
+                    disabled={isSubmitted}
+                  />
+                </div>
+              );
+            })}
+            {!isSubmitted && (
+              <Button 
+                onButtonClick={handleSubmit}
+                disabled={submitAnswerMutation.isPending}
+              >
+                {submitAnswerMutation.isPending ? 'Submitting...' : 'Submit Answers'}
+              </Button>
+            )}
+            {isSubmitted && (
+              <Text text="Answers submitted! Waiting for other players..." />
+            )}
+          </>
         ) : (
           <Text text="No game types configured yet. Please wait for the host to configure the game." />
         )}

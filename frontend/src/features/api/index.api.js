@@ -17,3 +17,5 @@ export const getGameTypes = () => axios.get('/game-types/');
 export const getGameSession = (roomId) => axios.get(`/rooms/${roomId}/game-session/`);
 export const updateGameSession = (roomId, data) => axios.put(`/rooms/${roomId}/game-session/update/`, data);
 export const startGameSession = (roomId) => axios.post(`/rooms/${roomId}/game-session/start/`);
+export const submitAnswer = (roomId, data) => axios.post(`/rooms/${roomId}/game-session/submit/`, data);
+export const getPlayerScores = (roomId) => axios.get(`/rooms/${roomId}/game-session/scores/`);

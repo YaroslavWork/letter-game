@@ -5,8 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 import random
 import string
-from ..models import Room, GameSession, GAME_TYPE_CHOICES
+from ..models import Room, GameSession, RoomPlayer, PlayerAnswer, GAME_TYPE_CHOICES
 from ..serializers.game_session_serializer import GameSessionSerializer, UpdateGameSessionSerializer
+from ..serializers.player_answer_serializer import SubmitAnswerSerializer, PlayerAnswerSerializer
 from ..utils import broadcast_room_update, broadcast_game_started
 
 
@@ -127,4 +128,124 @@ class StartGameSessionView(APIView):
         
         # Return full game session data
         serializer = GameSessionSerializer(game_session)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SubmitAnswerView(APIView):
+    """
+    API view for players to submit their answers and calculate points.
+    Points are calculated based on:
+    - Unique answers: 10 points
+    - Duplicate answers: 5 points
+    - Empty answers: 0 points
+    """
+    permission_classes = (IsAuthenticated,)
+    
+    def post(self, request, room_id):
+        room = get_object_or_404(Room, id=room_id, is_active=True)
+        
+        # Check if user is in the room
+        try:
+            room_player = RoomPlayer.objects.get(room=room, user=request.user)
+        except RoomPlayer.DoesNotExist:
+            return Response(
+                {'error': 'You are not a member of this room.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        game_session = get_object_or_404(GameSession, room=room)
+        
+        # Validate that game has started (letter is set)
+        if not game_session.letter:
+            return Response(
+                {'error': 'Game has not started yet.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = SubmitAnswerSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        answers = serializer.validated_data['answers']
+        letter = game_session.letter.upper()
+        
+        # Validate answers start with the correct letter
+        validated_answers = {}
+        for game_type, answer in answers.items():
+            if game_type not in game_session.selected_types:
+                continue
+            answer_clean = answer.strip()
+            if answer_clean:
+                if answer_clean[0].upper() == letter:
+                    validated_answers[game_type] = answer_clean
+                else:
+                    validated_answers[game_type] = ""
+            else:
+                validated_answers[game_type] = ""
+        
+        # Get all existing answers from other players in this game session
+        existing_answers = PlayerAnswer.objects.filter(
+            game_session=game_session
+        ).exclude(player=room_player)
+        
+        # Calculate points
+        points = 0
+        all_answers_by_type = {}
+        
+        for existing_answer_obj in existing_answers:
+            for game_type, answer in existing_answer_obj.answers.items():
+                if game_type not in all_answers_by_type:
+                    all_answers_by_type[game_type] = []
+                if answer:
+                    all_answers_by_type[game_type].append(answer.lower())
+        
+        for game_type, answer in validated_answers.items():
+            if not answer:
+                continue
+            
+            answer_lower = answer.lower()
+            matching_answers = [a for a in all_answers_by_type.get(game_type, []) if a == answer_lower]
+            
+            if len(matching_answers) == 0:
+                points += 10
+            else:
+                points += 5
+        
+        # Create or update player answer
+        player_answer, created = PlayerAnswer.objects.update_or_create(
+            game_session=game_session,
+            player=room_player,
+            defaults={
+                'answers': validated_answers,
+                'points': points
+            }
+        )
+        
+        # Broadcast room update to show scores
+        broadcast_room_update(room)
+        
+        response_serializer = PlayerAnswerSerializer(player_answer)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class GetPlayerScoresView(APIView):
+    """
+    API view to get all player scores for a game session.
+    """
+    permission_classes = (IsAuthenticated,)
+    
+    def get(self, request, room_id):
+        room = get_object_or_404(Room, id=room_id, is_active=True)
+        
+        # Check if user is in the room
+        if not RoomPlayer.objects.filter(room=room, user=request.user).exists():
+            return Response(
+                {'error': 'You are not a member of this room.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        game_session = get_object_or_404(GameSession, room=room)
+        player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+        
+        serializer = PlayerAnswerSerializer(player_answers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

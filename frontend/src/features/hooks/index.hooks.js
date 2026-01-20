@@ -86,3 +86,17 @@ export const useMutationStartGameSession = () => {
     mutationFn: (roomId) => api.startGameSession(roomId),
   });
 };
+
+export const useMutationSubmitAnswer = () => {
+  return useMutation({
+    mutationFn: ({ roomId, data }) => api.submitAnswer(roomId, data),
+  });
+};
+
+export const usePlayerScores = (roomId) => {
+  return useQuery({
+    queryKey: ['playerScores', roomId],
+    queryFn: () => api.getPlayerScores(roomId),
+    enabled: !!roomId,
+  });
+};

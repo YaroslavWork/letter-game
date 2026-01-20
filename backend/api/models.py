@@ -87,3 +87,21 @@ class GameSession(models.Model):
         """
         type_dict = dict(GAME_TYPE_CHOICES)
         return [type_dict.get(t, t) for t in self.selected_types]
+
+
+class PlayerAnswer(models.Model):
+    """
+    Model to store player answers for a game session round.
+    """
+    game_session = models.ForeignKey(GameSession, on_delete=models.CASCADE, related_name='player_answers')
+    player = models.ForeignKey(RoomPlayer, on_delete=models.CASCADE, related_name='answers')
+    answers = models.JSONField(default=dict, help_text="Dictionary mapping game type keys to player's answers")
+    points = models.IntegerField(default=0, help_text="Total points earned in this round")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['game_session', 'player']
+        ordering = ['-submitted_at']
+    
+    def __str__(self):
+        return f"{self.player.user.username} - {self.points} points"
