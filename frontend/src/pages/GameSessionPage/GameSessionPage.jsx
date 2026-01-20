@@ -202,6 +202,14 @@ export default function GameSessionPage() {
   };
 
   const playerScores = playerScoresData?.data || playerScoresData || [];
+  
+  const allPlayersSubmitted = players.length > 0 && playerScores.length === players.length;
+  
+  const getPlayerAnswer = (playerId, gameTypeKey) => {
+    const playerAnswer = playerScores.find(ps => ps.player === playerId);
+    if (!playerAnswer || !playerAnswer.answers) return '';
+    return playerAnswer.answers[gameTypeKey] || '';
+  };
 
   return (
     <div className={styles.gameSessionPage}>
@@ -278,14 +286,54 @@ export default function GameSessionPage() {
                 {submitAnswerMutation.isPending ? 'Submitting...' : 'Submit Answers'}
               </Button>
             )}
-            {isSubmitted && (
+            {isSubmitted && !allPlayersSubmitted && (
               <Text text="Answers submitted! Waiting for other players..." />
+            )}
+            {allPlayersSubmitted && (
+              <Text text="All players have submitted! See the results below." />
             )}
           </>
         ) : (
           <Text text="No game types configured yet. Please wait for the host to configure the game." />
         )}
       </div>
+
+      {allPlayersSubmitted && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
+        <div className={styles.resultsTable}>
+          <Header text="Results Table" />
+          <table className={styles.answersTable}>
+            <thead>
+              <tr>
+                <th className={styles.tableHeader}>Category</th>
+                {players.map((player) => (
+                  <th key={player.id} className={styles.tableHeader}>
+                    {player.game_name || player.username}
+                    {player.user_id === room.host_id ? ' (Host)' : ''}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {displayTypes.map((type, index) => {
+                const gameTypeKey = gameSession.selected_types[index];
+                return (
+                  <tr key={index} className={styles.tableRow}>
+                    <td className={styles.categoryCell}>{type}</td>
+                    {players.map((player) => {
+                      const answer = getPlayerAnswer(player.id, gameTypeKey);
+                      return (
+                        <td key={player.id} className={styles.answerCell}>
+                          {answer || '-'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className={styles.actions}>
         {isHost && (
