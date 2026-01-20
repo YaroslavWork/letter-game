@@ -78,3 +78,24 @@ def broadcast_game_started(room, game_session):
                 'game_session': game_data
             }
         )
+
+
+def broadcast_player_submitted(room, player_username, all_players_submitted=False):
+    """
+    Broadcast notification when a player submits their answers.
+    
+    Args:
+        room: The room object
+        player_username: Username of the player who submitted
+        all_players_submitted: Whether all players have now submitted
+    """
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f'room_{room.id}',
+            {
+                'type': 'player_submitted_notification',
+                'player_username': player_username,
+                'all_players_submitted': all_players_submitted
+            }
+        )

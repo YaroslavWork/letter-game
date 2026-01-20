@@ -97,6 +97,7 @@ class PlayerAnswer(models.Model):
     player = models.ForeignKey(RoomPlayer, on_delete=models.CASCADE, related_name='answers')
     answers = models.JSONField(default=dict, help_text="Dictionary mapping game type keys to player's answers")
     points = models.IntegerField(default=0, help_text="Total points earned in this round")
+    points_per_category = models.JSONField(default=dict, help_text="Dictionary mapping game type keys to points earned per category")
     submitted_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

@@ -168,19 +168,29 @@ def recalculate_all_scores(game_session):
                     'answer': answer_clean.lower()
                 })
     
-    # Calculate points for each player
+    # Calculate points for each player and per category
     player_points = {}
+    player_points_per_category = {}
     for player_answer in all_player_answers:
         player_points[player_answer] = 0
+        player_points_per_category[player_answer] = {}
     
     # Score each category
     for game_type, answer_list in answers_by_type.items():
         if len(answer_list) == 0:
-            # No valid answers for this category
+            # No valid answers for this category - all players get 0 points
+            for player_answer in all_player_answers:
+                player_points_per_category[player_answer][game_type] = 0
             continue
         elif len(answer_list) == 1:
             # Only one player answered this category: 15 points
-            player_points[answer_list[0]['player_answer']] += 15
+            player_answer = answer_list[0]['player_answer']
+            player_points[player_answer] += 15
+            player_points_per_category[player_answer][game_type] = 15
+            # Other players get 0 for this category
+            for pa in all_player_answers:
+                if pa != player_answer:
+                    player_points_per_category[pa][game_type] = 0
         else:
             # Multiple players answered, check for duplicates
             answer_counts = {}
@@ -190,19 +200,27 @@ def recalculate_all_scores(game_session):
                     answer_counts[answer_lower] = []
                 answer_counts[answer_lower].append(item['player_answer'])
             
+            # Initialize all players with 0 for this category
+            for player_answer in all_player_answers:
+                player_points_per_category[player_answer][game_type] = 0
+            
             # Score based on uniqueness
             for answer_lower, players_with_answer in answer_counts.items():
                 if len(players_with_answer) == 1:
                     # Unique answer: 10 points
-                    player_points[players_with_answer[0]] += 10
+                    player_answer = players_with_answer[0]
+                    player_points[player_answer] += 10
+                    player_points_per_category[player_answer][game_type] = 10
                 else:
                     # Repeating answer: 5 points each
                     for player_answer in players_with_answer:
                         player_points[player_answer] += 5
+                        player_points_per_category[player_answer][game_type] = 5
     
     # Update all player answers with recalculated points
-    for player_answer, points in player_points.items():
-        player_answer.points = points
+    for player_answer in all_player_answers:
+        player_answer.points = player_points[player_answer]
+        player_answer.points_per_category = player_points_per_category[player_answer]
         player_answer.save()
 
 
@@ -269,11 +287,20 @@ class SubmitAnswerView(APIView):
             }
         )
         
+        # Check if all players have submitted before recalculation
+        room_players = RoomPlayer.objects.filter(room=room)
+        all_player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+        all_players_submitted = all_player_answers.count() >= room_players.count()
+        
         # Recalculate all scores (this will only update if all players have submitted)
         recalculate_all_scores(game_session)
         
         # Refresh player_answer to get updated points
         player_answer.refresh_from_db()
+        
+        # Broadcast player submission notification
+        from ..utils import broadcast_player_submitted
+        broadcast_player_submitted(room, room_player.user.username, all_players_submitted)
         
         # Broadcast room update to show scores
         broadcast_room_update(room)

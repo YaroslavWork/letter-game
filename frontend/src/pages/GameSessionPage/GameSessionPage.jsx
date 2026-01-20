@@ -17,6 +17,7 @@ export default function GameSessionPage() {
   const [gameSession, setGameSession] = useState(null);
   const [answers, setAnswers] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedPlayers, setSubmittedPlayers] = useState(new Set());
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId);
@@ -41,6 +42,10 @@ export default function GameSessionPage() {
           refetchGameSession();
         }, 500);
       }
+    } else if (data.type === 'player_submitted_notification') {
+      // Update submitted players set
+      setSubmittedPlayers(prev => new Set([...prev, data.player_username]));
+      refetchScores();
     } else if (data.type === 'room_deleted_notification') {
       alert('The room has been deleted.');
       wsClient.disconnect();
@@ -48,7 +53,7 @@ export default function GameSessionPage() {
       localStorage.removeItem('room_type');
       navigate('/');
     }
-  }, [navigate, roomId, refetchGameSession, refetchScores]);
+  }, [navigate, roomId, refetchGameSession, refetchScores, user]);
 
   useEffect(() => {
     wsClient.on('message', handleWebSocketMessage);
@@ -137,6 +142,15 @@ export default function GameSessionPage() {
           // Populate answers with submitted values so user can see what they submitted
           setAnswers(userAnswer.answers);
         }
+        
+        // Update submitted players set
+        const submitted = new Set();
+        playerScores.forEach(ps => {
+          if (ps.player_username) {
+            submitted.add(ps.player_username);
+          }
+        });
+        setSubmittedPlayers(submitted);
       }
     }
   }, [user, playerScoresData]);
@@ -232,6 +246,12 @@ export default function GameSessionPage() {
     return playerAnswer.answers[gameTypeKey] || '';
   };
 
+  const getPlayerPointsForCategory = (playerId, gameTypeKey) => {
+    const playerAnswer = playerScores.find(ps => ps.player === playerId);
+    if (!playerAnswer || !playerAnswer.points_per_category) return null;
+    return playerAnswer.points_per_category[gameTypeKey];
+  };
+
   return (
     <div className={styles.gameSessionPage}>
       <Header text={room ? `Game Session - ${room.name}` : "Game Session"} />
@@ -253,9 +273,12 @@ export default function GameSessionPage() {
         <Header text="Players" />
         {players.map((player) => {
           const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
+          const playerUsername = player.username || player.game_name;
+          const hasSubmitted = submittedPlayers.has(playerUsername);
+          const showPoints = allPlayersSubmitted && playerScore && playerScore.points !== null && playerScore.points !== undefined;
           return (
             <div key={player.id} className={styles.playerItem}>
-              <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}${playerScore ? ` - ${playerScore.points} points` : ''}`} />
+              <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}${hasSubmitted ? ' ✓ Submitted' : ''}${showPoints ? ` - ${playerScore.points} points` : ''}`} />
             </div>
           );
         })}
@@ -342,9 +365,13 @@ export default function GameSessionPage() {
                     <td className={styles.categoryCell}>{type}</td>
                     {players.map((player) => {
                       const answer = getPlayerAnswer(player.id, gameTypeKey);
+                      const points = getPlayerPointsForCategory(player.id, gameTypeKey);
                       return (
                         <td key={player.id} className={styles.answerCell}>
-                          {answer || '-'}
+                          <div>{answer || '-'}</div>
+                          {points !== null && points !== undefined && (
+                            <div className={styles.pointsLabel}>({points} pts)</div>
+                          )}
                         </td>
                       );
                     })}

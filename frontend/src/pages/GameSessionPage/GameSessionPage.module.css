@@ -179,3 +179,13 @@
 .answerCell:last-child {
   border-right: none;
 }
+
+.answerCell > div {
+  margin-bottom: 0.25rem;
+}
+
+.pointsLabel {
+  font-size: 0.85rem;
+  color: #4a90e2;
+  font-weight: 600;
+}

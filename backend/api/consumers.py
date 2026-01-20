@@ -108,6 +108,16 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'game_session': event['game_session']
         }))
     
+    async def player_submitted_notification(self, event):
+        """
+        Send a notification when a player submits their answers.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'player_submitted_notification',
+            'player_username': event['player_username'],
+            'all_players_submitted': event['all_players_submitted']
+        }))
+    
     async def send_room_update(self):
         room = await self.get_room()
         if room:
