@@ -289,7 +289,7 @@ export default function HostGamePage() {
     );
   }
 
-  if (!room && !isReconnecting) {
+  if (!room) {
     return (
       <div className={styles.hostGamePage}>
         <Header text="Host Game" />
