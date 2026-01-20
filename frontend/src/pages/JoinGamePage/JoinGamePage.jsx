@@ -109,6 +109,23 @@ export default function JoinGamePage() {
       setPlayers([]);
       setRoomId('');
       navigate('/');
+    } else if (data.type === 'game_started_notification') {
+      // Game was started by host - update game session and navigate to game session page
+      if (data.game_session) {
+        // Store game session data in state before navigation
+        setGameSession(data.game_session);
+      }
+      // Store room info if not already stored
+      if (data.room_id) {
+        localStorage.setItem('room_id', data.room_id);
+        localStorage.setItem('room_type', 'join');
+        // Store game session in localStorage temporarily so GameSessionPage can access it
+        if (data.game_session) {
+          localStorage.setItem('game_session', JSON.stringify(data.game_session));
+        }
+        // Navigate to game session page
+        navigate(`/game/${data.room_id}`);
+      }
     }
   }, [user, navigate]);
 
@@ -155,11 +172,22 @@ export default function JoinGamePage() {
         );
         wasInRoomRef.current = userIsInRoom;
         
-        // Connect to WebSocket if not already connected
-        if (!wsClient.isConnected() && wsClient.getState() !== 'CONNECTING') {
+        // Ensure WebSocket is connected to receive game_started notifications
+        // Connect to WebSocket if not already connected or if connected to different room
+        const currentState = wsClient.getState();
+        if (currentState !== 'OPEN' && currentState !== 'CONNECTING') {
           const token = localStorage.getItem('access_token');
           if (token) {
             wsClient.connect(roomData.id, token);
+          }
+        } else if (!wsClient.isConnected()) {
+          // Reconnect if not properly connected
+          const token = localStorage.getItem('access_token');
+          if (token) {
+            wsClient.disconnect();
+            setTimeout(() => {
+              wsClient.connect(roomData.id, token);
+            }, 100);
           }
         }
       }
@@ -208,9 +236,17 @@ export default function JoinGamePage() {
           );
           wasInRoomRef.current = userIsInRoom;
           
+          // Ensure WebSocket is connected to receive game_started notifications
           setTimeout(() => {
             const token = localStorage.getItem('access_token');
             if (token) {
+              // Disconnect first if connected to different room
+              if (wsClient.isConnected() || wsClient.getState() === 'CONNECTING') {
+                const currentRoomId = localStorage.getItem('room_id');
+                if (currentRoomId && currentRoomId !== roomData.id.toString()) {
+                  wsClient.disconnect();
+                }
+              }
               wsClient.connect(roomData.id, token);
             }
           }, 100);

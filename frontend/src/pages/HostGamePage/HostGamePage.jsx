@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useRoom } from '../../features/hooks/index.hooks';
+import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useRoom, useMutationStartGameSession } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -20,6 +20,7 @@ export default function HostGamePage() {
   const createRoomMutation = useMutationCreateRoom();
   const deleteRoomMutation = useMutationDeleteRoom();
   const deletePlayerMutation = useMutationDeletePlayer();
+  const startGameSessionMutation = useMutationStartGameSession();
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
@@ -51,6 +52,18 @@ export default function HostGamePage() {
       localStorage.removeItem('room_id');
       localStorage.removeItem('room_type');
       navigate('/');
+    } else if (data.type === 'game_started_notification') {
+      // Game was started by host - update game session and navigate to game session page
+      if (data.game_session) {
+        setGameSession(data.game_session);
+      }
+      // Store room info if not already stored
+      if (data.room_id) {
+        localStorage.setItem('room_id', data.room_id);
+        localStorage.setItem('room_type', 'host');
+        // Navigate to game session page
+        navigate(`/game/${data.room_id}`);
+      }
     }
   }, [navigate]);
 
@@ -205,6 +218,30 @@ export default function HostGamePage() {
     }
   };
 
+  const handleStartGame = () => {
+    if (!room) return;
+    
+    // Check if game types are configured
+    if (!gameSession || !gameSession.selected_types || gameSession.selected_types.length === 0) {
+      alert('Please configure game types before starting the game.');
+      return;
+    }
+    
+    if (window.confirm('Are you sure you want to start the game? All players will be notified.')) {
+      startGameSessionMutation.mutate(room.id, {
+        onSuccess: () => {
+          // Navigation will happen via WebSocket message
+        },
+        onError: (error) => {
+          const errorMessage = error.response?.data?.error || 
+                             error.response?.data?.detail ||
+                             'Failed to start game. Please try again.';
+          alert(errorMessage);
+        }
+      });
+    }
+  };
+
   if (isConnecting || (!room && roomCreatedRef.current && !createRoomMutation.isError) || (isReconnecting && isLoadingRoom)) {
     return (
       <div className={styles.hostGamePage}>
@@ -303,6 +340,12 @@ export default function HostGamePage() {
       <div className={styles.actions}>
         <Button onButtonClick={() => navigate(`/host/rules/${room.id}`)}>
           Configure Game Rules
+        </Button>
+        <Button 
+          onButtonClick={handleStartGame}
+          disabled={startGameSessionMutation.isPending || !gameSession || !gameSession.selected_types || gameSession.selected_types.length === 0}
+        >
+          {startGameSessionMutation.isPending ? 'Starting...' : 'Start a game'}
         </Button>
         <Button onButtonClick={handleDeleteRoom}>
           Delete Room

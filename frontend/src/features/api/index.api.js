@@ -16,3 +16,4 @@ export const deletePlayer = (roomId, playerId) => axios.delete(`/rooms/${roomId}
 export const getGameTypes = () => axios.get('/game-types/');
 export const getGameSession = (roomId) => axios.get(`/rooms/${roomId}/game-session/`);
 export const updateGameSession = (roomId, data) => axios.put(`/rooms/${roomId}/game-session/update/`, data);
+export const startGameSession = (roomId) => axios.post(`/rooms/${roomId}/game-session/start/`);

@@ -98,6 +98,16 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'room_id': event['room_id']
         }))
     
+    async def game_started_notification(self, event):
+        """
+        Send a notification when the game is started by the host.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'game_started_notification',
+            'room_id': event['room_id'],
+            'game_session': event['game_session']
+        }))
+    
     async def send_room_update(self):
         room = await self.get_room()
         if room:

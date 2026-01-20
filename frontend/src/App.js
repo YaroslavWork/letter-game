@@ -5,6 +5,7 @@ import RegisterPage from './pages/RegisterPage/RegisterPage';
 import HostGamePage from './pages/HostGamePage/HostGamePage';
 import HostGameRulePage from './pages/HostGameRulePage/HostGameRulePage';
 import JoinGamePage from './pages/JoinGamePage/JoinGamePage';
+import GameSessionPage from './pages/GameSessionPage/GameSessionPage';
 import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
 import './App.css';
 
@@ -17,6 +18,7 @@ function App() {
       <Route path="/host" element={ <HostGamePage /> } />
       <Route path="/host/rules/:roomId" element={ <HostGameRulePage /> } />
       <Route path="/join" element={ <JoinGamePage /> } />
+      <Route path="/game/:roomId" element={ <GameSessionPage /> } />
       <Route path="*" element={ <NotFoundPage /> } />
     </Routes>
   );

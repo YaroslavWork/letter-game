@@ -53,3 +53,28 @@ def broadcast_room_deleted(room_id):
                 'room_id': room_id
             }
         )
+
+
+def broadcast_game_started(room, game_session):
+    """
+    Broadcast game started notification to all WebSocket clients in the room.
+    
+    Args:
+        room: The room object
+        game_session: The game session object with the final letter
+    """
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        from .serializers.game_session_serializer import GameSessionSerializer
+        game_serializer = GameSessionSerializer(game_session)
+        game_data = game_serializer.data
+        
+        # Send game started notification to all clients in the room
+        async_to_sync(channel_layer.group_send)(
+            f'room_{room.id}',
+            {
+                'type': 'game_started_notification',
+                'room_id': str(room.id),
+                'game_session': game_data
+            }
+        )

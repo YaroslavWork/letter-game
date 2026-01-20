@@ -71,14 +71,14 @@ class GameSession(models.Model):
     def get_final_letter(self):
         """
         Returns the final letter to use. 
-        - If a specific letter is set, returns that letter.
-        - If is_random_letter is True, returns None (letter will be determined when game starts).
+        - If a letter is set (whether random or not), returns that letter.
+        - If is_random_letter is True and letter is None, returns None (letter will be determined when game starts).
         - This prevents generating a new random letter on every serialization.
         """
-        if not self.is_random_letter and self.letter:
+        if self.letter:
             return self.letter.upper()
-        # For random letters, return None - the letter will be determined when the game starts
-        # This prevents the letter from changing on every room update
+        # For random letters that haven't been set yet, return None
+        # The letter will be determined when the game starts
         return None
     
     def get_selected_types_display(self):

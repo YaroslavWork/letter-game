@@ -80,3 +80,9 @@ export const useMutationUpdateGameSession = () => {
     mutationFn: ({ roomId, data }) => api.updateGameSession(roomId, data),
   });
 };
+
+export const useMutationStartGameSession = () => {
+  return useMutation({
+    mutationFn: (roomId) => api.startGameSession(roomId),
+  });
+};
