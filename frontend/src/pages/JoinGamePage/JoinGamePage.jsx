@@ -27,6 +27,16 @@ export default function JoinGamePage() {
       const updatedRoom = data.data;
       const updatedPlayers = updatedRoom.players || [];
       
+      // Check if game session is active (has a final_letter, meaning game has started)
+      const gameSession = updatedRoom?.game_session;
+      const isGameActive = gameSession && gameSession.final_letter;
+      
+      if (isGameActive && updatedRoom?.id) {
+        // Game is active, navigate to game session page
+        navigate(`/game/${updatedRoom.id}`);
+        return;
+      }
+      
       // Check if current user is still in the room
       const isUserStillInRoom = updatedPlayers.some(
         player => String(player.user_id) === String(user?.id)
@@ -154,13 +164,24 @@ export default function JoinGamePage() {
       // Handle different response structures
       const roomData = existingRoomData?.data?.data || existingRoomData?.data || existingRoomData;
       if (roomData && roomData.id) {
+        const gameSession = roomData.game_session;
+        
+        // Check if game session is active (has a final_letter, meaning game has started)
+        const isGameActive = gameSession && gameSession.final_letter;
+        
+        if (isGameActive) {
+          // Game is active, navigate to game session page
+          navigate(`/game/${roomData.id}`);
+          return;
+        }
+        
         setRoom(roomData);
         const initialPlayers = roomData.players || [];
         setPlayers(initialPlayers);
         
         // Set game session if available
-        if (roomData.game_session) {
-          setGameSession(roomData.game_session);
+        if (gameSession) {
+          setGameSession(gameSession);
         } else {
           // Reset game session if not present
           setGameSession(null);

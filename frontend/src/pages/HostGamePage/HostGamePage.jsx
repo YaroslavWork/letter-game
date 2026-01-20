@@ -27,6 +27,16 @@ export default function HostGamePage() {
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
+      // Check if game session is active (has a final_letter, meaning game has started)
+      const gameSession = data.data?.game_session;
+      const isGameActive = gameSession && gameSession.final_letter;
+      
+      if (isGameActive && data.data?.id) {
+        // Game is active, navigate to game session page
+        navigate(`/game/${data.data.id}`);
+        return;
+      }
+      
       // Update room and players state in real-time when receiving room updates
       setRoom(data.data);
       setPlayers(data.data.players || []);
@@ -139,10 +149,21 @@ export default function HostGamePage() {
     if (isReconnecting && existingRoomData && !room) {
       const roomData = existingRoomData?.data || existingRoomData;
       if (roomData && roomData.id) {
+        const gameSession = roomData.game_session;
+        
+        // Check if game session is active (has a final_letter, meaning game has started)
+        const isGameActive = gameSession && gameSession.final_letter;
+        
+        if (isGameActive) {
+          // Game is active, navigate to game session page
+          navigate(`/game/${roomData.id}`);
+          return;
+        }
+        
         setRoom(roomData);
         setPlayers(roomData.players || []);
-        if (roomData.game_session) {
-          setGameSession(roomData.game_session);
+        if (gameSession) {
+          setGameSession(gameSession);
         }
         setIsConnecting(false);
         roomCreatedRef.current = true;

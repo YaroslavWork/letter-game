@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRoom } from '../../features/hooks/index.hooks';
+import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -57,6 +59,33 @@ export default function MainPage () {
 
         setIsReconnecting(true);
 
+        // First, fetch room data to check if game session is active
+        axios.get(`/rooms/${roomId}/`)
+        .then(response => {
+            const roomData = response?.data?.data || response?.data || response;
+            const gameSession = roomData?.game_session;
+            
+            // Check if game session is active (has a final_letter, meaning game has started)
+            const isGameActive = gameSession && gameSession.final_letter;
+            
+            if (isGameActive) {
+                // Game is active, navigate to game session page
+                setIsReconnecting(false);
+                navigate(`/game/${roomId}`);
+                return;
+            }
+            
+            // Game not active, proceed with WebSocket connection to room page
+            connectToRoom(roomId, roomType, token);
+        })
+        .catch(error => {
+            console.error('Error fetching room data:', error);
+            // If fetch fails, try to connect anyway
+            connectToRoom(roomId, roomType, token);
+        });
+    };
+
+    const connectToRoom = (roomId, roomType, token) => {
         // Set up a one-time listener to handle connection
         let timeoutId = null;
         let isHandled = false;
