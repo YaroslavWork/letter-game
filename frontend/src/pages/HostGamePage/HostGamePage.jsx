@@ -319,14 +319,6 @@ export default function HostGamePage() {
     );
   }
 
-  if (!room) {
-    return (
-      <div className={styles.hostGamePage}>
-        <Text text="Loading room..." />
-      </div>
-    );
-  }
-
   return (
     <div className={styles.hostGamePage}>
       <Header text={`Host Game - ${room.name || 'Room'}`} />
