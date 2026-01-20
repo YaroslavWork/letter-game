@@ -189,3 +189,26 @@
   color: #4a90e2;
   font-weight: 600;
 }
+
+.totalRow {
+  background-color: #f0f8ff;
+  border-top: 2px solid #4a90e2;
+}
+
+.totalCell {
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background-color: #f0f8ff;
+  border-right: 1px solid #e0e0e0;
+  text-align: left;
+  color: #4a90e2;
+}
+
+.totalCell:first-child {
+  border-right: 1px solid #e0e0e0;
+}
+
+.totalCell:last-child {
+  border-right: none;
+}

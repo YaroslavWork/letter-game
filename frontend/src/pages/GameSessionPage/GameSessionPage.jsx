@@ -252,6 +252,12 @@ export default function GameSessionPage() {
     return playerAnswer.points_per_category[gameTypeKey];
   };
 
+  const getPlayerTotalPoints = (playerId) => {
+    const playerAnswer = playerScores.find(ps => ps.player === playerId);
+    if (!playerAnswer || playerAnswer.points === null || playerAnswer.points === undefined) return null;
+    return playerAnswer.points;
+  };
+
   return (
     <div className={styles.gameSessionPage}>
       <Header text={room ? `Game Session - ${room.name}` : "Game Session"} />
@@ -379,6 +385,19 @@ export default function GameSessionPage() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className={styles.totalRow}>
+                <td className={styles.totalCell}>Total Points</td>
+                {players.map((player) => {
+                  const totalPoints = getPlayerTotalPoints(player.id);
+                  return (
+                    <td key={player.id} className={styles.totalCell}>
+                      {totalPoints !== null && totalPoints !== undefined ? totalPoints : '-'}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
