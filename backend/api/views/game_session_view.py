@@ -131,13 +131,90 @@ class StartGameSessionView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+def recalculate_all_scores(game_session):
+    """
+    Recalculate all player scores based on the game rules:
+    - If answer doesn't start with the letter: 0 points
+    - If only one player answered a category: 15 points
+    - If answer is unique (only one player has it): 10 points
+    - If answer is repeating (multiple players have it): 5 points each
+    """
+    letter = game_session.letter.upper()
+    all_player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+    
+    # Get all players in the room
+    room_players = RoomPlayer.objects.filter(room=game_session.room)
+    total_players = room_players.count()
+    
+    # If not all players have submitted, don't recalculate yet
+    if all_player_answers.count() < total_players:
+        return
+    
+    # Organize answers by game type
+    answers_by_type = {}
+    for player_answer in all_player_answers:
+        for game_type, answer in player_answer.answers.items():
+            if game_type not in answers_by_type:
+                answers_by_type[game_type] = []
+            
+            # Clean and validate answer
+            if not answer or not isinstance(answer, str):
+                continue
+            answer_clean = answer.strip()
+            # Check if answer starts with the correct letter
+            if answer_clean and answer_clean[0].upper() == letter:
+                answers_by_type[game_type].append({
+                    'player_answer': player_answer,
+                    'answer': answer_clean.lower()
+                })
+    
+    # Calculate points for each player
+    player_points = {}
+    for player_answer in all_player_answers:
+        player_points[player_answer] = 0
+    
+    # Score each category
+    for game_type, answer_list in answers_by_type.items():
+        if len(answer_list) == 0:
+            # No valid answers for this category
+            continue
+        elif len(answer_list) == 1:
+            # Only one player answered this category: 15 points
+            player_points[answer_list[0]['player_answer']] += 15
+        else:
+            # Multiple players answered, check for duplicates
+            answer_counts = {}
+            for item in answer_list:
+                answer_lower = item['answer']
+                if answer_lower not in answer_counts:
+                    answer_counts[answer_lower] = []
+                answer_counts[answer_lower].append(item['player_answer'])
+            
+            # Score based on uniqueness
+            for answer_lower, players_with_answer in answer_counts.items():
+                if len(players_with_answer) == 1:
+                    # Unique answer: 10 points
+                    player_points[players_with_answer[0]] += 10
+                else:
+                    # Repeating answer: 5 points each
+                    for player_answer in players_with_answer:
+                        player_points[player_answer] += 5
+    
+    # Update all player answers with recalculated points
+    for player_answer, points in player_points.items():
+        player_answer.points = points
+        player_answer.save()
+
+
 class SubmitAnswerView(APIView):
     """
-    API view for players to submit their answers and calculate points.
-    Points are calculated based on:
-    - Unique answers: 10 points
-    - Duplicate answers: 5 points
-    - Empty answers: 0 points
+    API view for players to submit their answers.
+    Scores are recalculated for all players after all players submit.
+    Scoring rules:
+    - If answer doesn't start with the letter: 0 points
+    - If only one player answered a category: 15 points
+    - If answer is unique (only one player has it): 10 points
+    - If answer is repeating (multiple players have it): 5 points each
     """
     permission_classes = (IsAuthenticated,)
     
@@ -169,57 +246,34 @@ class SubmitAnswerView(APIView):
         answers = serializer.validated_data['answers']
         letter = game_session.letter.upper()
         
-        # Validate answers start with the correct letter
+        # Validate and clean answers
         validated_answers = {}
         for game_type, answer in answers.items():
             if game_type not in game_session.selected_types:
                 continue
-            answer_clean = answer.strip()
-            if answer_clean:
-                if answer_clean[0].upper() == letter:
-                    validated_answers[game_type] = answer_clean
-                else:
-                    validated_answers[game_type] = ""
+            # Clean answer (handle None, empty strings, and non-strings)
+            if not answer or not isinstance(answer, str):
+                answer_clean = ""
             else:
-                validated_answers[game_type] = ""
+                answer_clean = answer.strip()
+            # Store the answer as-is (we'll validate letter match during scoring)
+            validated_answers[game_type] = answer_clean
         
-        # Get all existing answers from other players in this game session
-        existing_answers = PlayerAnswer.objects.filter(
-            game_session=game_session
-        ).exclude(player=room_player)
-        
-        # Calculate points
-        points = 0
-        all_answers_by_type = {}
-        
-        for existing_answer_obj in existing_answers:
-            for game_type, answer in existing_answer_obj.answers.items():
-                if game_type not in all_answers_by_type:
-                    all_answers_by_type[game_type] = []
-                if answer:
-                    all_answers_by_type[game_type].append(answer.lower())
-        
-        for game_type, answer in validated_answers.items():
-            if not answer:
-                continue
-            
-            answer_lower = answer.lower()
-            matching_answers = [a for a in all_answers_by_type.get(game_type, []) if a == answer_lower]
-            
-            if len(matching_answers) == 0:
-                points += 10
-            else:
-                points += 5
-        
-        # Create or update player answer
+        # Create or update player answer (initially with 0 points)
         player_answer, created = PlayerAnswer.objects.update_or_create(
             game_session=game_session,
             player=room_player,
             defaults={
                 'answers': validated_answers,
-                'points': points
+                'points': 0  # Will be recalculated
             }
         )
+        
+        # Recalculate all scores (this will only update if all players have submitted)
+        recalculate_all_scores(game_session)
+        
+        # Refresh player_answer to get updated points
+        player_answer.refresh_from_db()
         
         # Broadcast room update to show scores
         broadcast_room_update(room)
