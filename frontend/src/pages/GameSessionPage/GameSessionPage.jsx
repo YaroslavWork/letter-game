@@ -120,6 +120,27 @@ export default function GameSessionPage() {
     }
   }, [roomId, room, gameSession, isLoadingGameSession, refetchGameSession]);
 
+  // Check if current user has already submitted answers (for reconnection scenario)
+  useEffect(() => {
+    if (user && playerScoresData) {
+      const playerScores = playerScoresData?.data || playerScoresData || [];
+      if (playerScores.length > 0) {
+        const userAnswer = playerScores.find(ps => 
+          ps.player === user.id || 
+          ps.player_username === user.username ||
+          String(ps.player) === String(user.id)
+        );
+        
+        if (userAnswer && userAnswer.answers) {
+          // User has already submitted, set submitted state and populate answers
+          setIsSubmitted(true);
+          // Populate answers with submitted values so user can see what they submitted
+          setAnswers(userAnswer.answers);
+        }
+      }
+    }
+  }, [user, playerScoresData]);
+
   if (isLoadingRoom || !room) {
     return (
       <div className={styles.gameSessionPage}>
