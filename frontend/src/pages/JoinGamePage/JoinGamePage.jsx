@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMutationJoinRoom, useMutationLeaveRoom, useRoom } from '../../features/hooks/index.hooks';
+import { useMutationJoinRoom, useMutationLeaveRoom } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import { Input } from '../../components/UI/Input/Input';
 import Button from '../../components/UI/Button/Button';
@@ -147,78 +147,29 @@ export default function JoinGamePage() {
     };
   }, [handleWebSocketMessage]);
 
-  // Check if we're reconnecting to an existing room
-  const storedRoomId = localStorage.getItem('room_id');
-  const storedRoomType = localStorage.getItem('room_type');
-  const isReconnecting = storedRoomId && storedRoomType === 'join';
-  const { data: existingRoomData, isLoading: isLoadingRoom } = useRoom(isReconnecting ? storedRoomId : null);
-
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
 
-    // If reconnecting, try to load existing room
-    if (isReconnecting && existingRoomData && !room) {
-      // Handle different response structures
-      const roomData = existingRoomData?.data?.data || existingRoomData?.data || existingRoomData;
-      if (roomData && roomData.id) {
-        const gameSession = roomData.game_session;
-        
-        // Check if game session is active (has a final_letter, meaning game has started)
-        const isGameActive = gameSession && gameSession.final_letter;
-        
-        if (isGameActive) {
-          // Game is active, navigate to game session page
-          navigate(`/game/${roomData.id}`);
-          return;
-        }
-        
-        setRoom(roomData);
-        const initialPlayers = roomData.players || [];
-        setPlayers(initialPlayers);
-        
-        // Set game session if available
-        if (gameSession) {
-          setGameSession(gameSession);
-        } else {
-          // Reset game session if not present
-          setGameSession(null);
-        }
-        
-        // Check if user is in the initial players list
-        const userIsInRoom = initialPlayers.some(
-          player => String(player.user_id) === String(user?.id)
-        );
-        wasInRoomRef.current = userIsInRoom;
-        
-        // Ensure WebSocket is connected to receive game_started notifications
-        // Connect to WebSocket if not already connected or if connected to different room
-        const currentState = wsClient.getState();
-        if (currentState !== 'OPEN' && currentState !== 'CONNECTING') {
-          const token = localStorage.getItem('access_token');
-          if (token) {
-            wsClient.connect(roomData.id, token);
-          }
-        } else if (!wsClient.isConnected()) {
-          // Reconnect if not properly connected
-          const token = localStorage.getItem('access_token');
-          if (token) {
-            wsClient.disconnect();
-            setTimeout(() => {
-              wsClient.connect(roomData.id, token);
-            }, 100);
-          }
-        }
-      }
+    // Clear any stored room info when entering JoinGamePage
+    // This ensures we always show the join form, not reconnect
+    localStorage.removeItem('room_id');
+    localStorage.removeItem('room_type');
+    
+    // Disconnect any existing WebSocket connection
+    if (wsClient.isConnected()) {
+      wsClient.disconnect();
     }
-
-    return () => {
-      // Don't disconnect on unmount if we're still in the room
-      // Only disconnect if navigating away
-    };
-  }, [isAuthenticated, navigate, isReconnecting, existingRoomData, room, user]);
+    
+    // Reset room state
+    setRoom(null);
+    setPlayers([]);
+    setGameSession(null);
+    setRoomId('');
+    wasInRoomRef.current = false;
+  }, [isAuthenticated, navigate]);
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
@@ -313,15 +264,6 @@ export default function JoinGamePage() {
       navigate('/');
     }
   };
-
-  if (isReconnecting && isLoadingRoom) {
-    return (
-      <div className={styles.joinGamePage}>
-        <Header text="Join Game" />
-        <Text text="Reconnecting to room..." />
-      </div>
-    );
-  }
 
   if (!room) {
     return (

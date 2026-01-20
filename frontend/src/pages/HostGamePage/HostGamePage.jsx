@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useRoom, useMutationStartGameSession } from '../../features/hooks/index.hooks';
+import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useMutationStartGameSession } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -133,53 +133,17 @@ export default function HostGamePage() {
     }
   }, [createRoomMutation.isPending, createRoomMutation.isError, createRoomMutation.isSuccess, createRoomMutation.error, createRoomMutation.data, room, isConnecting, handleRoomCreated]);
 
-  // Check if we're reconnecting to an existing room
-  const storedRoomId = localStorage.getItem('room_id');
-  const storedRoomType = localStorage.getItem('room_type');
-  const isReconnecting = storedRoomId && storedRoomType === 'host';
-  const { data: existingRoomData, isLoading: isLoadingRoom } = useRoom(isReconnecting ? storedRoomId : null);
-
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
 
-    // If reconnecting, try to load existing room
-    if (isReconnecting && existingRoomData && !room) {
-      const roomData = existingRoomData?.data || existingRoomData;
-      if (roomData && roomData.id) {
-        const gameSession = roomData.game_session;
-        
-        // Check if game session is active (has a final_letter, meaning game has started)
-        const isGameActive = gameSession && gameSession.final_letter;
-        
-        if (isGameActive) {
-          // Game is active, navigate to game session page
-          navigate(`/game/${roomData.id}`);
-          return;
-        }
-        
-        setRoom(roomData);
-        setPlayers(roomData.players || []);
-        if (gameSession) {
-          setGameSession(gameSession);
-        }
-        setIsConnecting(false);
-        roomCreatedRef.current = true;
-        
-        // Connect to WebSocket if not already connected
-        if (!wsClient.isConnected() && wsClient.getState() !== 'CONNECTING') {
-          const token = localStorage.getItem('access_token');
-          if (token) {
-            wsClient.connect(roomData.id, token);
-          }
-        }
-      }
-    }
-
-    // Don't auto-create room - wait for user to enter room name and click create
-  }, [isAuthenticated, navigate, createRoomMutation, handleRoomCreated, isReconnecting, existingRoomData, room]);
+    // Clear any stored room info when entering HostGamePage
+    // This ensures we always create a new room, not reconnect
+    localStorage.removeItem('room_id');
+    localStorage.removeItem('room_type');
+  }, [isAuthenticated, navigate]);
 
   const handleCreateRoom = () => {
     if (!roomName.trim()) {
@@ -272,14 +236,6 @@ export default function HostGamePage() {
       });
     }
   };
-
-  if (isReconnecting && isLoadingRoom) {
-    return (
-      <div className={styles.hostGamePage}>
-        <Text text="Reconnecting to room..." />
-      </div>
-    );
-  }
 
   if (isConnecting || (!room && roomCreatedRef.current && !createRoomMutation.isError)) {
     return (
