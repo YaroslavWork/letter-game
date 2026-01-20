@@ -115,6 +115,47 @@
   border-color: #4a90e2;
 }
 
+.textInputError {
+  border-color: #e74c3c;
+  background-color: #fee;
+}
+
+.textInputError:focus {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+.textInputValid {
+  border-color: #27ae60;
+}
+
+.textInputValid:focus {
+  border-color: #27ae60;
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+.errorMessage {
+  color: #e74c3c;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.successMessage {
+  color: #27ae60;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.validationWarning {
+  color: #e74c3c;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
 .actions {
   display: flex;
   gap: 1rem;

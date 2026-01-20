@@ -18,6 +18,7 @@ export default function GameSessionPage() {
   const [answers, setAnswers] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedPlayers, setSubmittedPlayers] = useState(new Set());
+  const [validationErrors, setValidationErrors] = useState({});
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId);
@@ -204,14 +205,68 @@ export default function GameSessionPage() {
   const displayTypes = getDisplayTypes(gameSession);
 
   const handleAnswerChange = (gameType, value) => {
+    const letter = finalLetter?.toUpperCase();
+    
+    // Always update the answer value (allow typing)
     setAnswers(prev => ({
       ...prev,
       [gameType]: value
     }));
+    
+    // Validate that the word starts with the game letter (case-insensitive)
+    if (letter && value.trim().length > 0) {
+      const firstChar = value.trim()[0].toUpperCase();
+      if (firstChar !== letter) {
+        // Show error but allow typing
+        setValidationErrors(prev => ({
+          ...prev,
+          [gameType]: `Word must start with the letter "${letter}"`
+        }));
+      } else {
+        // Clear error if validation passes
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[gameType];
+          return newErrors;
+        });
+      }
+    } else {
+      // Clear error for empty input
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[gameType];
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = () => {
     if (!roomId || !gameSession) return;
+
+    // Check for validation errors
+    const hasErrors = Object.keys(validationErrors).length > 0;
+    if (hasErrors) {
+      alert('Please fix validation errors before submitting. All words must start with the game letter or be left empty.');
+      return;
+    }
+
+    // Validate all answers one more time before submission
+    const letter = finalLetter?.toUpperCase();
+    const invalidAnswers = [];
+    gameSession.selected_types.forEach(type => {
+      const answer = answers[type] || '';
+      if (answer.trim() !== '' && letter) {
+        const firstChar = answer.trim()[0].toUpperCase();
+        if (firstChar !== letter) {
+          invalidAnswers.push(type);
+        }
+      }
+    });
+
+    if (invalidAnswers.length > 0) {
+      alert('Some answers do not start with the correct letter. Please fix them before submitting.');
+      return;
+    }
 
     const answersToSubmit = {};
     gameSession.selected_types.forEach(type => {
@@ -314,27 +369,46 @@ export default function GameSessionPage() {
           <>
             {displayTypes.map((type, index) => {
               const gameTypeKey = gameSession.selected_types[index];
+              const error = validationErrors[gameTypeKey];
+              const currentValue = answers[gameTypeKey] || '';
+              const isValid = !error && (currentValue.trim() === '' || (finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase()));
+              
               return (
                 <div key={index} className={styles.inputField}>
                   <Text text={`${type}:`} />
                   <input 
                     type="text" 
-                    className={styles.textInput}
-                    placeholder={`Enter a word for ${type}`}
-                    value={answers[gameTypeKey] || ''}
+                    className={`${styles.textInput} ${error ? styles.textInputError : ''} ${isValid && currentValue.trim() !== '' ? styles.textInputValid : ''}`}
+                    placeholder={`Enter a word for ${type} starting with "${finalLetter || '?'}"`}
+                    value={currentValue}
                     onChange={(e) => handleAnswerChange(gameTypeKey, e.target.value)}
                     disabled={isSubmitted}
                   />
+                  {error && (
+                    <div className={styles.errorMessage}>
+                      {error}
+                    </div>
+                  )}
+                  {!error && currentValue.trim() !== '' && finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase() && (
+                    <div className={styles.successMessage}>
+                      ✓ Valid word starting with "{finalLetter}"
+                    </div>
+                  )}
                 </div>
               );
             })}
             {!isSubmitted && (
               <Button 
                 onButtonClick={handleSubmit}
-                disabled={submitAnswerMutation.isPending}
+                disabled={submitAnswerMutation.isPending || Object.keys(validationErrors).length > 0}
               >
                 {submitAnswerMutation.isPending ? 'Submitting...' : 'Submit Answers'}
               </Button>
+            )}
+            {!isSubmitted && Object.keys(validationErrors).length > 0 && (
+              <div className={styles.validationWarning}>
+                Please fix validation errors before submitting.
+              </div>
             )}
             {isSubmitted && !allPlayersSubmitted && (
               <Text text="Answers submitted! Waiting for other players..." />
