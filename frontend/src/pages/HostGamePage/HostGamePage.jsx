@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useMutationStartGameSession } from '../../features/hooks/index.hooks';
+import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useMutationStartGameSession, useRoom } from '../../features/hooks/index.hooks';
+import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -133,17 +134,48 @@ export default function HostGamePage() {
     }
   }, [createRoomMutation.isPending, createRoomMutation.isError, createRoomMutation.isSuccess, createRoomMutation.error, createRoomMutation.data, room, isConnecting, handleRoomCreated]);
 
+  // Check if we should load an existing room (e.g., coming back from rules page)
+  const storedRoomId = localStorage.getItem('room_id');
+  const storedRoomType = localStorage.getItem('room_type');
+  const shouldLoadExistingRoom = storedRoomId && storedRoomType === 'host';
+  const { data: existingRoomData, isLoading: isLoadingExistingRoom } = useRoom(shouldLoadExistingRoom ? storedRoomId : null);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
 
-    // Clear any stored room info when entering HostGamePage
-    // This ensures we always create a new room, not reconnect
-    localStorage.removeItem('room_id');
-    localStorage.removeItem('room_type');
-  }, [isAuthenticated, navigate]);
+    // If we have a stored room and we're the host, load it instead of clearing
+    if (shouldLoadExistingRoom && existingRoomData && !room) {
+      const roomData = existingRoomData?.data || existingRoomData;
+      if (roomData && roomData.id && roomData.host_id === user?.id) {
+        setRoom(roomData);
+        setPlayers(roomData.players || []);
+        if (roomData.game_session) {
+          setGameSession(roomData.game_session);
+        }
+        setIsConnecting(false);
+        roomCreatedRef.current = true;
+        
+        // Connect to WebSocket if not already connected
+        if (!wsClient.isConnected() && wsClient.getState() !== 'CONNECTING') {
+          const token = localStorage.getItem('access_token');
+          if (token) {
+            wsClient.connect(roomData.id, token);
+          }
+        }
+        return;
+      }
+    }
+
+    // Only clear stored room info if we're not loading an existing room
+    // This allows navigation back from rules page to work correctly
+    if (!shouldLoadExistingRoom && !isLoadingExistingRoom) {
+      localStorage.removeItem('room_id');
+      localStorage.removeItem('room_type');
+    }
+  }, [isAuthenticated, navigate, shouldLoadExistingRoom, existingRoomData, room, user, isLoadingExistingRoom]);
 
   const handleCreateRoom = () => {
     if (!roomName.trim()) {
