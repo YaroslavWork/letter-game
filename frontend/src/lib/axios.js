@@ -1,7 +1,10 @@
 import Axios from 'axios';
 
+// Get API URL from environment variable, default to localhost:8000 for development
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
 export const axios = Axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: API_BASE_URL,
 });
 
 axios.interceptors.request.use(
@@ -48,7 +51,8 @@ axios.interceptors.response.use(
                     return Promise.reject(error);
                 }
 
-                const response = await Axios.post('http://localhost:8000/api/token/refresh/', {
+                const refreshUrl = `${API_BASE_URL}/token/refresh/`;
+                const response = await Axios.post(refreshUrl, {
                     refresh: refreshToken
                 });
 

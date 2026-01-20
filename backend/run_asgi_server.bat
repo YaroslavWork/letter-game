@@ -9,5 +9,11 @@ if errorlevel 1 (
 )
 
 REM Run server with Daphne (ASGI)
-echo Starting Django server with ASGI (Daphne) support...
-daphne -b 0.0.0.0 -p 8000 backend.asgi:application
+REM Use PORT environment variable if set, otherwise default to 8000
+if defined PORT (
+    set SERVER_PORT=%PORT%
+) else (
+    set SERVER_PORT=8000
+)
+echo Starting Django server with ASGI (Daphne) support on port %SERVER_PORT%...
+daphne -b 0.0.0.0 -p %SERVER_PORT% backend.asgi:application

@@ -8,5 +8,7 @@ if ! python -c "import daphne" 2>/dev/null; then
 fi
 
 # Run server with Daphne (ASGI)
-echo "Starting Django server with ASGI (Daphne) support..."
-daphne -b 0.0.0.0 -p 8000 backend.asgi:application
+# Use PORT environment variable if set, otherwise default to 8000
+PORT=${PORT:-8000}
+echo "Starting Django server with ASGI (Daphne) support on port $PORT..."
+daphne -b 0.0.0.0 -p $PORT backend.asgi:application

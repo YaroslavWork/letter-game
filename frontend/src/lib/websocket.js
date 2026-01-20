@@ -27,7 +27,9 @@ class WebSocketClient {
     this.token = token;
     this.reconnectAttempts = 0;
 
-    const wsUrl = `ws://localhost:8000/ws/room/${roomId}/?token=${token}`;
+    // Get WebSocket URL from environment variable, default to localhost:8000 for development
+    const WS_BASE_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const wsUrl = `${WS_BASE_URL}/ws/room/${roomId}/?token=${token}`;
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
