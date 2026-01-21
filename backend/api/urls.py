@@ -10,7 +10,7 @@ from .views.room_view import (
 )
 from .views.game_session_view import (
     GetGameTypesView, GetGameSessionView, UpdateGameSessionView, StartGameSessionView,
-    SubmitAnswerView, GetPlayerScoresView
+    SubmitAnswerView, GetPlayerScoresView, AdvanceRoundView
 )
 
 
@@ -31,4 +31,5 @@ urlpatterns = [
     path('rooms/<uuid:room_id>/game-session/start/', StartGameSessionView.as_view(), name='start_game_session'),
     path('rooms/<uuid:room_id>/game-session/submit/', SubmitAnswerView.as_view(), name='submit_answer'),
     path('rooms/<uuid:room_id>/game-session/scores/', GetPlayerScoresView.as_view(), name='get_player_scores'),
+    path('rooms/<uuid:room_id>/game-session/advance-round/', AdvanceRoundView.as_view(), name='advance_round'),
 ]

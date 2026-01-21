@@ -18,4 +18,8 @@ export const getGameSession = (roomId) => axios.get(`/rooms/${roomId}/game-sessi
 export const updateGameSession = (roomId, data) => axios.put(`/rooms/${roomId}/game-session/update/`, data);
 export const startGameSession = (roomId) => axios.post(`/rooms/${roomId}/game-session/start/`);
 export const submitAnswer = (roomId, data) => axios.post(`/rooms/${roomId}/game-session/submit/`, data);
-export const getPlayerScores = (roomId) => axios.get(`/rooms/${roomId}/game-session/scores/`);
+export const getPlayerScores = (roomId, includeTotals = false) => {
+  const params = includeTotals ? { include_totals: 'true' } : {};
+  return axios.get(`/rooms/${roomId}/game-session/scores/`, { params });
+};
+export const advanceRound = (roomId) => axios.post(`/rooms/${roomId}/game-session/advance-round/`);

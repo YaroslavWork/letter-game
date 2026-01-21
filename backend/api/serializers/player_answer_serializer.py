@@ -10,27 +10,33 @@ class PlayerAnswerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PlayerAnswer
-        fields = ('id', 'player', 'player_username', 'player_game_name', 'answers', 'points', 'points_per_category', 'submitted_at')
-        read_only_fields = ('id', 'points', 'points_per_category', 'submitted_at')
+        fields = ('id', 'player', 'player_username', 'player_game_name', 'round_number', 'answers', 'points', 'points_per_category', 'submitted_at')
+        read_only_fields = ('id', 'round_number', 'points', 'points_per_category', 'submitted_at')
     
     def get_points(self, obj):
-        """Only return points if all players have submitted"""
+        """Only return points if all players have submitted for current round"""
         game_session = obj.game_session
         room_players = game_session.room.players.all()
-        all_player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+        all_player_answers = PlayerAnswer.objects.filter(
+            game_session=game_session,
+            round_number=obj.round_number
+        )
         
-        # Check if all players have submitted
+        # Check if all players have submitted for this round
         if all_player_answers.count() >= room_players.count():
             return obj.points
         return None  # Hide points until all players submit
     
     def get_points_per_category(self, obj):
-        """Only return points_per_category if all players have submitted"""
+        """Only return points_per_category if all players have submitted for current round"""
         game_session = obj.game_session
         room_players = game_session.room.players.all()
-        all_player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+        all_player_answers = PlayerAnswer.objects.filter(
+            game_session=game_session,
+            round_number=obj.round_number
+        )
         
-        # Check if all players have submitted
+        # Check if all players have submitted for this round
         if all_player_answers.count() >= room_players.count():
             return obj.points_per_category
         return {}  # Hide points until all players submit

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores } from '../../features/hooks/index.hooks';
+import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -19,19 +19,38 @@ export default function GameSessionPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedPlayers, setSubmittedPlayers] = useState(new Set());
   const [validationErrors, setValidationErrors] = useState({});
+  const [countdown, setCountdown] = useState(null);
+  const [showResults, setShowResults] = useState(false);
 
   const submitAnswerMutation = useMutationSubmitAnswer();
-  const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId);
+  const advanceRoundMutation = useMutationAdvanceRound();
+  // Include totals when game is completed
+  const includeTotals = gameSession?.is_completed || false;
+  const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId, includeTotals);
 
   const { data: existingRoomData, isLoading: isLoadingRoom } = useRoom(roomId);
   const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession } = useGameSession(roomId);
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
+      const newGameSession = data.data?.game_session;
+      const oldRound = gameSession?.current_round;
+      
       setRoom(data.data);
       setPlayers(data.data.players || []);
-      if (data.data.game_session) {
-        setGameSession(data.data.game_session);
+      if (newGameSession) {
+        setGameSession(newGameSession);
+        
+        // Check if round advanced
+        if (oldRound && newGameSession.current_round !== oldRound) {
+          // Round advanced, reset state
+          setCountdown(null);
+          setShowResults(false);
+          setIsSubmitted(false);
+          setAnswers({});
+          setValidationErrors({});
+          setSubmittedPlayers(new Set());
+        }
       }
       refetchScores();
     } else if (data.type === 'game_started_notification') {
@@ -46,7 +65,23 @@ export default function GameSessionPage() {
     } else if (data.type === 'player_submitted_notification') {
       // Update submitted players set
       setSubmittedPlayers(prev => new Set([...prev, data.player_username]));
+      // Show results when all players submit
+      if (data.all_players_submitted) {
+        setShowResults(true);
+      }
       refetchScores();
+    } else if (data.type === 'round_advancing_notification') {
+      // Update countdown from backend
+      setCountdown(data.countdown_seconds);
+      setShowResults(true);
+      // When countdown reaches 0, wait for room update
+      if (data.countdown_seconds === 0) {
+        // Round is advancing, wait for room update
+        setTimeout(() => {
+          refetchGameSession();
+          refetchScores();
+        }, 500);
+      }
     } else if (data.type === 'room_deleted_notification') {
       alert('The room has been deleted.');
       wsClient.disconnect();
@@ -155,6 +190,48 @@ export default function GameSessionPage() {
       }
     }
   }, [user, playerScoresData]);
+
+  // Reset countdown when round changes or game completes
+  useEffect(() => {
+    if (gameSession) {
+      if (gameSession.is_completed) {
+        setCountdown(null);
+        setShowResults(true);
+      } else if (countdown === 0) {
+        // Countdown finished, wait for backend to advance
+        setCountdown(null);
+      }
+    }
+  }, [gameSession?.current_round, gameSession?.is_completed, countdown]);
+
+  // Reset answers when round changes
+  const prevRoundRef = useRef(null);
+  useEffect(() => {
+    if (gameSession && gameSession.current_round) {
+      const currentRound = gameSession.current_round;
+      const prevRound = prevRoundRef.current;
+      
+      // Only reset if round actually changed (not on initial load)
+      if (prevRound !== null && prevRound !== currentRound) {
+        setIsSubmitted(false);
+        setAnswers({});
+        setValidationErrors({});
+        setSubmittedPlayers(new Set());
+        setCountdown(null);
+        setShowResults(false);
+        refetchScores();
+      }
+      
+      prevRoundRef.current = currentRound;
+    }
+  }, [gameSession?.current_round, refetchScores]);
+
+  // Refetch scores with totals when game is completed
+  useEffect(() => {
+    if (gameSession?.is_completed) {
+      refetchScores();
+    }
+  }, [gameSession?.is_completed, refetchScores]);
 
   if (isLoadingRoom || !room) {
     return (
@@ -291,7 +368,8 @@ export default function GameSessionPage() {
     );
   };
 
-  const playerScores = playerScoresData?.data || playerScoresData || [];
+  const scoresResponse = playerScoresData?.data || playerScoresData || {};
+  const playerScores = Array.isArray(scoresResponse) ? scoresResponse : (scoresResponse.round_scores || []);
   
   const allPlayersSubmitted = players.length > 0 && playerScores.length === players.length;
   
@@ -317,20 +395,109 @@ export default function GameSessionPage() {
     <div className={styles.gameSessionPage}>
       <Header text={room ? `Game Session - ${room.name}` : "Game Session"} />
       
-      <div className={styles.gameInfo}>
-        <div className={styles.letterDisplay}>
-          <Header text={`Letter: ${finalLetter || 'Not set'}`} />
-        </div>
-        
-        <div className={styles.roomInfo}>
-          <Text text={`Room ID: ${room.id}`} />
-          <Text text={`Room Name: ${room.name}`} />
-          <Text text={`Players: ${players.length}`} />
-          {isHost && <Text text="(You are the host)" />}
-        </div>
-      </div>
+      {gameSession && gameSession.is_completed ? (
+        // Game completed - show winner and statistics
+        <div className={styles.gameCompleted}>
+          <Header text="🎉 Game Completed! 🎉" />
+          {(() => {
+            // Get total scores from API response if available
+            const totalScores = {};
+            const scoresResponse = playerScoresData?.data || playerScoresData;
+            const apiTotalScores = scoresResponse?.total_scores || {};
+            
+            // Use API total scores if available, otherwise calculate from current round
+            if (Object.keys(apiTotalScores).length > 0) {
+              players.forEach(player => {
+                totalScores[player.id] = apiTotalScores[player.id] || 0;
+              });
+            } else {
+              // Fallback: use current round scores
+              players.forEach(player => {
+                const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
+                totalScores[player.id] = playerScore?.points || 0;
+              });
+            }
 
-      <div className={styles.playersList}>
+            // Calculate winners
+            let winners = [];
+            let maxScore = -1;
+            
+            players.forEach(player => {
+              const score = totalScores[player.id] || 0;
+              if (score > maxScore) {
+                maxScore = score;
+                winners = [player];
+              } else if (score === maxScore && maxScore > 0) {
+                winners.push(player);
+              }
+            });
+
+            return (
+              <div className={styles.winnerSection}>
+                {winners.length > 0 && (
+                  <div className={styles.winnerDisplay}>
+                    <Header text={winners.length === 1 ? "Winner:" : "Winners (Tie):"} />
+                    {winners.map(winner => (
+                      <Text key={winner.id} text={`🏆 ${winner.game_name || winner.username} - ${maxScore} points`} />
+                    ))}
+                  </div>
+                )}
+                <div className={styles.statisticsSection}>
+                  <Header text="Final Statistics" />
+                  <div className={styles.statsTable}>
+                    <table className={styles.statisticsTable}>
+                      <thead>
+                        <tr>
+                          <th>Player</th>
+                          <th>Total Points</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {players.map(player => (
+                          <tr key={player.id}>
+                            <td>{player.game_name || player.username}</td>
+                            <td>{totalScores[player.id] || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : (
+        <>
+          <div className={styles.gameInfo}>
+            {gameSession && gameSession.total_rounds > 1 && (
+              <div className={styles.roundInfo}>
+                <Header text={`Round ${gameSession.current_round} of ${gameSession.total_rounds}`} />
+              </div>
+            )}
+            <div className={styles.letterDisplay}>
+              <Header text={`Letter: ${finalLetter || 'Not set'}`} />
+            </div>
+            
+            <div className={styles.roomInfo}>
+              <Text text={`Room ID: ${room.id}`} />
+              <Text text={`Room Name: ${room.name}`} />
+              <Text text={`Players: ${players.length}`} />
+              {isHost && <Text text="(You are the host)" />}
+            </div>
+          </div>
+
+          {countdown !== null && allPlayersSubmitted && (
+            <div className={styles.countdownDisplay}>
+              <Header text={`Next round starting in: ${countdown} seconds`} />
+            </div>
+          )}
+        </>
+      )}
+
+      {gameSession && !gameSession.is_completed && (
+        <>
+          <div className={styles.playersList}>
         <Header text="Players" />
         {players.map((player) => {
           const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
@@ -414,7 +581,7 @@ export default function GameSessionPage() {
               <Text text="Answers submitted! Waiting for other players..." />
             )}
             {allPlayersSubmitted && (
-              <Text text="All players have submitted! See the results below." />
+              <Text text={showResults ? `Round results! Next round in ${countdown || 0} seconds...` : "All players have submitted! See the results below."} />
             )}
           </>
         ) : (
@@ -422,7 +589,7 @@ export default function GameSessionPage() {
         )}
       </div>
 
-      {allPlayersSubmitted && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
+      {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
         <div className={styles.resultsTable}>
           <Header text="Results Table" />
           <table className={styles.answersTable}>
@@ -474,6 +641,8 @@ export default function GameSessionPage() {
             </tfoot>
           </table>
         </div>
+      )}
+        </>
       )}
 
       <div className={styles.actions}>

@@ -93,10 +93,16 @@ export const useMutationSubmitAnswer = () => {
   });
 };
 
-export const usePlayerScores = (roomId) => {
+export const usePlayerScores = (roomId, includeTotals = false) => {
   return useQuery({
-    queryKey: ['playerScores', roomId],
-    queryFn: () => api.getPlayerScores(roomId),
+    queryKey: ['playerScores', roomId, includeTotals],
+    queryFn: () => api.getPlayerScores(roomId, includeTotals),
     enabled: !!roomId,
+  });
+};
+
+export const useMutationAdvanceRound = () => {
+  return useMutation({
+    mutationFn: (roomId) => api.advanceRound(roomId),
   });
 };

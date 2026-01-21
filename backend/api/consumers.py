@@ -118,6 +118,15 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'all_players_submitted': event['all_players_submitted']
         }))
     
+    async def round_advancing_notification(self, event):
+        """
+        Send a notification with countdown for round advancement.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'round_advancing_notification',
+            'countdown_seconds': event['countdown_seconds']
+        }))
+    
     async def send_room_update(self):
         room = await self.get_room()
         if room:

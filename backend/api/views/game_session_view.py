@@ -5,10 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 import random
 import string
+import threading
 from ..models import Room, GameSession, RoomPlayer, PlayerAnswer, GAME_TYPE_CHOICES
 from ..serializers.game_session_serializer import GameSessionSerializer, UpdateGameSessionSerializer
 from ..serializers.player_answer_serializer import SubmitAnswerSerializer, PlayerAnswerSerializer
-from ..utils import broadcast_room_update, broadcast_game_started
+from ..utils import broadcast_room_update, broadcast_game_started, broadcast_round_advancing
 
 
 class GetGameTypesView(APIView):
@@ -102,8 +103,14 @@ class StartGameSessionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # If random letter, generate one now
-        if game_session.is_random_letter and not game_session.letter:
+        # Reset game state for new game
+        game_session.current_round = 1
+        game_session.is_completed = False
+        game_session.round_letters = []
+        
+        # Generate random letter for round 1
+        # If rounds > 1, always use random letters
+        if game_session.total_rounds > 1 or game_session.is_random_letter:
             # Generate a random letter (excluding rarely used letters like Q, X, Y, Z)
             # Using common Polish alphabet letters
             common_letters = list(string.ascii_uppercase)
@@ -113,15 +120,20 @@ class StartGameSessionView(APIView):
                 if letter in common_letters:
                     common_letters.remove(letter)
             
-            game_session.letter = random.choice(common_letters)
-            game_session.save()
+            round_letter = random.choice(common_letters)
+            game_session.letter = round_letter
+            game_session.round_letters = [round_letter]
+            game_session.is_random_letter = True  # Force random when rounds > 1
+        else:
+            # Single round with specific letter
+            if not game_session.letter:
+                return Response(
+                    {'error': 'Please set a letter or enable random letter before starting the game.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            game_session.round_letters = [game_session.letter]
         
-        # If not random but no letter set, return error
-        if not game_session.is_random_letter and not game_session.letter:
-            return Response(
-                {'error': 'Please set a letter or enable random letter before starting the game.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        game_session.save()
         
         # Broadcast game started message to all players
         broadcast_game_started(room, game_session)
@@ -131,7 +143,7 @@ class StartGameSessionView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-def recalculate_all_scores(game_session):
+def recalculate_all_scores(game_session, round_number=None):
     """
     Recalculate all player scores based on the game rules:
     - If answer doesn't start with the letter: 0 points
@@ -140,7 +152,12 @@ def recalculate_all_scores(game_session):
     - If answer is repeating (multiple players have it): 5 points each
     """
     letter = game_session.letter.upper()
-    all_player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+    if round_number is None:
+        round_number = game_session.current_round
+    all_player_answers = PlayerAnswer.objects.filter(
+        game_session=game_session,
+        round_number=round_number
+    )
     
     # Get all players in the room
     room_players = RoomPlayer.objects.filter(room=game_session.room)
@@ -277,30 +294,61 @@ class SubmitAnswerView(APIView):
             # Store the answer as-is (we'll validate letter match during scoring)
             validated_answers[game_type] = answer_clean
         
-        # Create or update player answer (initially with 0 points)
+        # Create or update player answer for current round (initially with 0 points)
         player_answer, created = PlayerAnswer.objects.update_or_create(
             game_session=game_session,
             player=room_player,
+            round_number=game_session.current_round,
             defaults={
                 'answers': validated_answers,
                 'points': 0  # Will be recalculated
             }
         )
         
-        # Check if all players have submitted before recalculation
+        # Check if all players have submitted for current round
         room_players = RoomPlayer.objects.filter(room=room)
-        all_player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+        all_player_answers = PlayerAnswer.objects.filter(
+            game_session=game_session,
+            round_number=game_session.current_round
+        )
         all_players_submitted = all_player_answers.count() >= room_players.count()
         
-        # Recalculate all scores (this will only update if all players have submitted)
-        recalculate_all_scores(game_session)
+        # Recalculate all scores for current round (this will only update if all players have submitted)
+        recalculate_all_scores(game_session, game_session.current_round)
         
         # Refresh player_answer to get updated points
         player_answer.refresh_from_db()
         
         # Broadcast player submission notification
-        from ..utils import broadcast_player_submitted
+        from ..utils import broadcast_player_submitted, schedule_round_advancement, broadcast_round_advancing
         broadcast_player_submitted(room, room_player.user.username, all_players_submitted)
+        
+        # If all players submitted and game has multiple rounds, schedule automatic advancement
+        if all_players_submitted and game_session.total_rounds > 1 and not game_session.is_completed:
+            # Only schedule if not already scheduled
+            if not game_session.round_advance_scheduled:
+                game_session.round_advance_scheduled = True
+                game_session.save()
+                
+                # Broadcast countdown updates every second and schedule advancement
+                def countdown_updates():
+                    import time
+                    try:
+                        # Send countdown from 10 to 1
+                        for i in range(10, 0, -1):
+                            broadcast_round_advancing(room, i)
+                            time.sleep(1)
+                        # Send final countdown (0) at the end
+                        broadcast_round_advancing(room, 0)
+                    except Exception as e:
+                        print(f"Error in countdown thread: {e}")
+                
+                # Start countdown in background thread
+                countdown_thread = threading.Thread(target=countdown_updates, daemon=True)
+                countdown_thread.start()
+                
+                # Schedule round advancement after 10 seconds (right after countdown finishes)
+                schedule_round_advancement(room, 10)
         
         # Broadcast room update to show scores
         broadcast_room_update(room)
@@ -326,7 +374,110 @@ class GetPlayerScoresView(APIView):
             )
         
         game_session = get_object_or_404(GameSession, room=room)
-        player_answers = PlayerAnswer.objects.filter(game_session=game_session)
+        
+        # Check if requesting total scores (for completed games)
+        include_totals = request.query_params.get('include_totals', 'false').lower() == 'true'
+        
+        # Get answers for current round
+        player_answers = PlayerAnswer.objects.filter(
+            game_session=game_session,
+            round_number=game_session.current_round
+        )
         
         serializer = PlayerAnswerSerializer(player_answers, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_data = serializer.data
+        
+        # If game is completed, include total scores across all rounds
+        if include_totals or game_session.is_completed:
+            room_players = RoomPlayer.objects.filter(room=room)
+            total_scores = {}
+            
+            for room_player in room_players:
+                total_points = 0
+                all_round_answers = PlayerAnswer.objects.filter(
+                    game_session=game_session,
+                    player=room_player
+                )
+                for answer in all_round_answers:
+                    total_points += answer.points or 0
+                total_scores[room_player.id] = total_points
+            
+            response_data = {
+                'round_scores': serializer.data,
+                'total_scores': total_scores,
+                'game_completed': game_session.is_completed
+            }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class AdvanceRoundView(APIView):
+    """
+    API view to advance to the next round after all players have submitted.
+    Generates a new random letter for the next round.
+    """
+    permission_classes = (IsAuthenticated,)
+    
+    def post(self, request, room_id):
+        room = get_object_or_404(Room, id=room_id, is_active=True)
+        
+        # Only host can advance rounds
+        if room.host != request.user:
+            return Response(
+                {'error': 'Only the host can advance rounds.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        game_session = get_object_or_404(GameSession, room=room)
+        
+        # Check if game is completed
+        if game_session.is_completed:
+            return Response(
+                {'error': 'Game is already completed.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if all players have submitted for current round
+        room_players = RoomPlayer.objects.filter(room=room)
+        all_player_answers = PlayerAnswer.objects.filter(
+            game_session=game_session,
+            round_number=game_session.current_round
+        )
+        
+        if all_player_answers.count() < room_players.count():
+            return Response(
+                {'error': 'Not all players have submitted their answers for this round.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Advance to next round
+        if game_session.current_round < game_session.total_rounds:
+            game_session.current_round += 1
+            
+            # Generate random letter for new round
+            common_letters = list(string.ascii_uppercase)
+            rare_letters = ['Q', 'X', 'Y']
+            for letter in rare_letters:
+                if letter in common_letters:
+                    common_letters.remove(letter)
+            
+            round_letter = random.choice(common_letters)
+            game_session.letter = round_letter
+            game_session.round_letters.append(round_letter)
+            game_session.save()
+            
+            # Broadcast room update
+            broadcast_room_update(room)
+            
+            serializer = GameSessionSerializer(game_session)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # Game completed
+            game_session.is_completed = True
+            game_session.save()
+            
+            # Broadcast room update
+            broadcast_room_update(room)
+            
+            serializer = GameSessionSerializer(game_session)
+            return Response(serializer.data, status=status.HTTP_200_OK)

@@ -9,7 +9,8 @@ class GameSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = GameSession
         fields = ('id', 'letter', 'is_random_letter', 'selected_types', 
-                  'selected_types_display', 'final_letter', 'created_at', 'updated_at')
+                  'selected_types_display', 'final_letter', 'total_rounds', 
+                  'current_round', 'is_completed', 'round_letters', 'round_advance_scheduled', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at')
     
     def get_selected_types_display(self, obj):
@@ -55,7 +56,7 @@ class UpdateGameSessionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = GameSession
-        fields = ('letter', 'is_random_letter', 'selected_types')
+        fields = ('letter', 'is_random_letter', 'selected_types', 'total_rounds')
     
     def validate_letter(self, value):
         """Validate that letter is a single uppercase letter."""

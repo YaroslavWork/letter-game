@@ -253,3 +253,108 @@
 .totalCell:last-child {
   border-right: none;
 }
+
+.roundInfo {
+  padding: 1rem;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.roundInfo h1 {
+  color: white;
+  font-size: 1.5rem;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.countdownDisplay {
+  padding: 1.5rem;
+  background-color: #fff3cd;
+  border: 3px solid #ffc107;
+  border-radius: 12px;
+  text-align: center;
+  margin: 1rem 0;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.countdownDisplay h1 {
+  color: #856404;
+  font-size: 2rem;
+  margin: 0;
+}
+
+.gameCompleted {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.winnerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.winnerDisplay {
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.winnerDisplay h1 {
+  color: #667eea;
+  margin-bottom: 1rem;
+}
+
+.statisticsSection {
+  padding: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.statisticsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.statisticsTable thead {
+  background-color: #667eea;
+  color: white;
+}
+
+.statisticsTable th,
+.statisticsTable td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.statisticsTable tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.statsTable {
+  width: 100%;
+}

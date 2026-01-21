@@ -58,6 +58,11 @@ class GameSession(models.Model):
     letter = models.CharField(max_length=1, null=True, blank=True, help_text="Selected letter for the game. Null means random.")
     is_random_letter = models.BooleanField(default=True, help_text="If True, letter will be randomly selected when game starts.")
     selected_types = models.JSONField(default=list, help_text="List of selected game types (keys from GAME_TYPE_CHOICES)")
+    total_rounds = models.IntegerField(default=1, help_text="Total number of rounds to play")
+    current_round = models.IntegerField(default=1, help_text="Current round number")
+    is_completed = models.BooleanField(default=False, help_text="Whether all rounds are completed")
+    round_letters = models.JSONField(default=list, help_text="List of letters used for each round")
+    round_advance_scheduled = models.BooleanField(default=False, help_text="Whether round advancement is already scheduled")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -95,13 +100,14 @@ class PlayerAnswer(models.Model):
     """
     game_session = models.ForeignKey(GameSession, on_delete=models.CASCADE, related_name='player_answers')
     player = models.ForeignKey(RoomPlayer, on_delete=models.CASCADE, related_name='answers')
+    round_number = models.IntegerField(default=1, help_text="Round number this answer belongs to")
     answers = models.JSONField(default=dict, help_text="Dictionary mapping game type keys to player's answers")
     points = models.IntegerField(default=0, help_text="Total points earned in this round")
     points_per_category = models.JSONField(default=dict, help_text="Dictionary mapping game type keys to points earned per category")
     submitted_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['game_session', 'player']
+        unique_together = ['game_session', 'player', 'round_number']
         ordering = ['-submitted_at']
     
     def __str__(self):

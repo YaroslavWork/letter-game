@@ -18,6 +18,7 @@ export default function HostGameRulePage() {
   const [letter, setLetter] = useState('');
   const [isRandomLetter, setIsRandomLetter] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState([]);
+  const [totalRounds, setTotalRounds] = useState(1);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -40,6 +41,7 @@ export default function HostGameRulePage() {
         }
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
+        setTotalRounds(session.total_rounds || 1);
       }
       // Do NOT navigate - stay on the configuration page
     } else if (data.type === 'room_deleted_notification') {
@@ -76,6 +78,7 @@ export default function HostGameRulePage() {
         }
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
+        setTotalRounds(session.total_rounds || 1);
       }
     }
   }, [gameSessionData]);
@@ -142,9 +145,19 @@ export default function HostGameRulePage() {
     setError('');
     setSuccessMessage('');
 
-    if (!isRandomLetter && !letter) {
-      setError('Please enter a letter or select random letter');
-      return;
+    // If rounds > 1, always use random letters
+    if (totalRounds > 1) {
+      // Force random letter when rounds > 1
+      if (!isRandomLetter) {
+        setIsRandomLetter(true);
+        setLetter('');
+      }
+    } else {
+      // Single round: validate letter
+      if (!isRandomLetter && !letter) {
+        setError('Please enter a letter or select random letter');
+        return;
+      }
     }
 
     if (selectedTypes.length === 0) {
@@ -152,12 +165,18 @@ export default function HostGameRulePage() {
       return;
     }
 
+    if (totalRounds < 1 || totalRounds > 10) {
+      setError('Number of rounds must be between 1 and 10');
+      return;
+    }
+
     const updateData = {
-      is_random_letter: isRandomLetter,
+      is_random_letter: totalRounds > 1 ? true : isRandomLetter,
       selected_types: selectedTypes,
+      total_rounds: totalRounds,
     };
 
-    if (!isRandomLetter && letter) {
+    if (totalRounds === 1 && !isRandomLetter && letter) {
       updateData.letter = letter;
     }
 
@@ -171,6 +190,7 @@ export default function HostGameRulePage() {
             setLetter(sessionData.letter || '');
             setIsRandomLetter(sessionData.is_random_letter);
             setSelectedTypes(sessionData.selected_types || []);
+            setTotalRounds(sessionData.total_rounds || 1);
           }
           
           // Invalidate and refetch queries to ensure UI is up to date
@@ -220,33 +240,56 @@ export default function HostGameRulePage() {
       </div>
 
       <div className={styles.section}>
-        <Header text="Choose Letter" />
-        <div className={styles.letterSection}>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={isRandomLetter}
-              onChange={handleRandomLetterToggle}
-              className={styles.checkbox}
-            />
-            <Text text="Random Letter" />
-          </label>
-          
-          {!isRandomLetter && (
-            <div className={styles.letterInput}>
-              <Text text="Enter Letter:" />
-              <Input
-                type="text"
-                value={letter}
-                onChange={handleLetterChange}
-                placeholder="A-Z"
-                maxLength={1}
-                style={{ textTransform: 'uppercase', width: '60px', textAlign: 'center' }}
-              />
-            </div>
-          )}
+        <Header text="Number of Rounds" />
+        <div className={styles.roundsSection}>
+          <Text text="How many rounds do you want to play?" />
+          <Input
+            type="number"
+            value={totalRounds}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 1;
+              if (value >= 1 && value <= 10) {
+                setTotalRounds(value);
+              }
+            }}
+            min="1"
+            max="10"
+            style={{ width: '100px', textAlign: 'center' }}
+          />
+          <Text text="(Each round will use a random letter)" />
         </div>
       </div>
+
+      {totalRounds === 1 && (
+        <div className={styles.section}>
+          <Header text="Choose Letter" />
+          <div className={styles.letterSection}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={isRandomLetter}
+                onChange={handleRandomLetterToggle}
+                className={styles.checkbox}
+              />
+              <Text text="Random Letter" />
+            </label>
+            
+            {!isRandomLetter && (
+              <div className={styles.letterInput}>
+                <Text text="Enter Letter:" />
+                <Input
+                  type="text"
+                  value={letter}
+                  onChange={handleLetterChange}
+                  placeholder="A-Z"
+                  maxLength={1}
+                  style={{ textTransform: 'uppercase', width: '60px', textAlign: 'center' }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className={styles.section}>
         <Header text="Select Game Types" />
