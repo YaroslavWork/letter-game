@@ -270,29 +270,36 @@
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.countdownDisplay {
+.advanceRoundSection {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  justify-content: center;
   padding: 1.5rem;
-  background-color: #fff3cd;
-  border: 3px solid #ffc107;
-  border-radius: 12px;
-  text-align: center;
-  margin: 1rem 0;
-  animation: pulse 1s infinite;
+  margin-bottom: 1rem;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
+.advanceRoundSection button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-.countdownDisplay h1 {
-  color: #856404;
-  font-size: 2rem;
-  margin: 0;
+.advanceRoundSection button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.advanceRoundSection button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .gameCompleted {

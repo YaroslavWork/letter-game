@@ -19,8 +19,10 @@ export default function GameSessionPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedPlayers, setSubmittedPlayers] = useState(new Set());
   const [validationErrors, setValidationErrors] = useState({});
-  const [countdown, setCountdown] = useState(null);
   const [showResults, setShowResults] = useState(false);
+  const [previousRoundScores, setPreviousRoundScores] = useState(null);
+  const [previousRoundNumber, setPreviousRoundNumber] = useState(null);
+  const lastWebSocketUpdateRef = useRef(null);
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const advanceRoundMutation = useMutationAdvanceRound();
@@ -34,33 +36,60 @@ export default function GameSessionPage() {
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
       const newGameSession = data.data?.game_session;
-      const oldRound = gameSession?.current_round;
       
       setRoom(data.data);
       setPlayers(data.data.players || []);
       if (newGameSession) {
-        setGameSession(newGameSession);
+        // Mark that we received a WebSocket update
+        lastWebSocketUpdateRef.current = Date.now();
         
-        // Check if round advanced
-        if (oldRound && newGameSession.current_round !== oldRound) {
-          // Round advanced, reset state
-          setCountdown(null);
-          setShowResults(false);
-          setIsSubmitted(false);
-          setAnswers({});
-          setValidationErrors({});
-          setSubmittedPlayers(new Set());
-        }
+        // Use functional update to get current gameSession state
+        setGameSession(prevGameSession => {
+          const oldRound = prevGameSession?.current_round;
+          const newRound = newGameSession.current_round;
+          
+          // Check if round advanced
+          if (oldRound && newRound !== oldRound) {
+            // Round advanced, store current scores as previous round scores before they're cleared
+            const currentScoresResponse = playerScoresData?.data || playerScoresData || {};
+            const currentPlayerScores = Array.isArray(currentScoresResponse) ? currentScoresResponse : (currentScoresResponse.round_scores || []);
+            if (currentPlayerScores.length > 0) {
+              setPreviousRoundScores(currentPlayerScores);
+              setPreviousRoundNumber(oldRound);
+            }
+            // Round advanced, reset state but keep showResults true so joiners can see results
+            setIsSubmitted(false);
+            setAnswers({});
+            setValidationErrors({});
+            setSubmittedPlayers(new Set());
+            // Don't reset showResults here - keep it true so results remain visible
+            // It will be reset when user starts submitting for the new round
+            // Don't refetch scores immediately - keep showing previous round's results
+          } else {
+            // Round didn't advance, refetch scores normally
+            refetchScores();
+          }
+          
+          return newGameSession;
+        });
+      } else {
+        // No game session in update, refetch scores normally
+        refetchScores();
       }
-      refetchScores();
     } else if (data.type === 'game_started_notification') {
+      // Mark that we received a WebSocket update
+      lastWebSocketUpdateRef.current = Date.now();
       if (data.game_session) {
+        // Always update gameSession when game starts - this has the letter
         setGameSession(data.game_session);
       }
+      // Refetch gameSession after a short delay to ensure we have the latest data
+      // This is important for the host who might have just started the game
       if (roomId) {
         setTimeout(() => {
           refetchGameSession();
-        }, 500);
+          refetchScores();
+        }, 300);
       }
     } else if (data.type === 'player_submitted_notification') {
       // Update submitted players set
@@ -70,18 +99,6 @@ export default function GameSessionPage() {
         setShowResults(true);
       }
       refetchScores();
-    } else if (data.type === 'round_advancing_notification') {
-      // Update countdown from backend
-      setCountdown(data.countdown_seconds);
-      setShowResults(true);
-      // When countdown reaches 0, wait for room update
-      if (data.countdown_seconds === 0) {
-        // Round is advancing, wait for room update
-        setTimeout(() => {
-          refetchGameSession();
-          refetchScores();
-        }, 500);
-      }
     } else if (data.type === 'room_deleted_notification') {
       alert('The room has been deleted.');
       wsClient.disconnect();
@@ -89,7 +106,7 @@ export default function GameSessionPage() {
       localStorage.removeItem('room_type');
       navigate('/');
     }
-  }, [navigate, roomId, refetchGameSession, refetchScores, user]);
+  }, [navigate, roomId, refetchGameSession, refetchScores]);
 
   useEffect(() => {
     wsClient.on('message', handleWebSocketMessage);
@@ -126,16 +143,45 @@ export default function GameSessionPage() {
       }
     }
 
-    if (existingRoomData && !room) {
+    if (existingRoomData) {
       const roomData = existingRoomData?.data || existingRoomData;
       if (roomData && roomData.id) {
-        setRoom(roomData);
-        setPlayers(roomData.players || []);
+        if (!room) {
+          setRoom(roomData);
+          setPlayers(roomData.players || []);
+        }
+        // Only set gameSession if we haven't received a recent WebSocket update
+        // This prevents overwriting WebSocket updates with stale API data
         if (roomData.game_session) {
-          setGameSession(roomData.game_session);
+          const timeSinceLastWebSocketUpdate = lastWebSocketUpdateRef.current 
+            ? Date.now() - lastWebSocketUpdateRef.current 
+            : Infinity;
+          // Always set if no gameSession yet (initial load), or if no recent WebSocket update
+          if (!gameSession || timeSinceLastWebSocketUpdate > 2000) {
+            setGameSession(prevSession => {
+              // Always set if no previous session (initial load)
+              if (!prevSession) {
+                return roomData.game_session;
+              }
+              // Prefer session with a letter over one without
+              if (prevSession.letter && !roomData.game_session.letter) {
+                return prevSession; // Keep current session if it has a letter
+              }
+              if (!prevSession.letter && roomData.game_session.letter) {
+                return roomData.game_session; // Prefer new session if it has a letter
+              }
+              // Don't overwrite if current session has a newer or same round
+              if (roomData.game_session.current_round && prevSession.current_round) {
+                if (prevSession.current_round >= roomData.game_session.current_round) {
+                  return prevSession; // Keep current session if it's newer or same
+                }
+              }
+              return roomData.game_session;
+            });
+          }
         }
         
-        if (!wsClient.isConnected() && wsClient.getState() !== 'CONNECTING') {
+        if (!room && !wsClient.isConnected() && wsClient.getState() !== 'CONNECTING') {
           const token = localStorage.getItem('access_token');
           if (token) {
             wsClient.connect(roomData.id, token);
@@ -147,7 +193,34 @@ export default function GameSessionPage() {
     if (gameSessionData) {
       const sessionData = gameSessionData?.data || gameSessionData;
       if (sessionData) {
-        setGameSession(sessionData);
+        // Only set gameSession if we haven't received a recent WebSocket update
+        // This prevents overwriting WebSocket updates with stale API data
+        const timeSinceLastWebSocketUpdate = lastWebSocketUpdateRef.current 
+          ? Date.now() - lastWebSocketUpdateRef.current 
+          : Infinity;
+        // Always set if no gameSession yet (initial load), or if no recent WebSocket update
+        if (!gameSession || timeSinceLastWebSocketUpdate > 2000) {
+          setGameSession(prevSession => {
+            // Always set if no previous session (initial load)
+            if (!prevSession) {
+              return sessionData;
+            }
+            // Prefer session with a letter over one without
+            if (prevSession.letter && !sessionData.letter) {
+              return prevSession; // Keep current session if it has a letter
+            }
+            if (!prevSession.letter && sessionData.letter) {
+              return sessionData; // Prefer new session if it has a letter
+            }
+            // Don't overwrite if current session has a newer or same round
+            if (sessionData.current_round && prevSession.current_round) {
+              if (prevSession.current_round >= sessionData.current_round) {
+                return prevSession; // Keep current session if it's newer or same
+              }
+            }
+            return sessionData;
+          });
+        }
       }
     }
   }, [isAuthenticated, navigate, roomId, existingRoomData, room, gameSessionData]);
@@ -191,20 +264,36 @@ export default function GameSessionPage() {
     }
   }, [user, playerScoresData]);
 
-  // Reset countdown when round changes or game completes
-  useEffect(() => {
-    if (gameSession) {
-      if (gameSession.is_completed) {
-        setCountdown(null);
-        setShowResults(true);
-      } else if (countdown === 0) {
-        // Countdown finished, wait for backend to advance
-        setCountdown(null);
-      }
-    }
-  }, [gameSession?.current_round, gameSession?.is_completed, countdown]);
+  // Calculate allPlayersSubmitted early so it can be used in useEffect hooks
+  const scoresResponse = playerScoresData?.data || playerScoresData || {};
+  let playerScores = Array.isArray(scoresResponse) ? scoresResponse : (scoresResponse.round_scores || []);
+  
+  // If we're showing previous round results, use those scores instead
+  if (showResults && previousRoundScores && previousRoundNumber && gameSession?.current_round !== previousRoundNumber) {
+    playerScores = previousRoundScores;
+  } else if (playerScores.length > 0 && !previousRoundScores && gameSession?.current_round) {
+    // Store current scores as previous round scores when they're available and we don't have stored scores
+    setPreviousRoundScores(playerScores);
+    setPreviousRoundNumber(gameSession.current_round);
+  }
+  
+  const allPlayersSubmitted = players.length > 0 && playerScores.length === players.length;
 
-  // Reset answers when round changes
+  // Reset showResults when game completes
+  useEffect(() => {
+    if (gameSession && gameSession.is_completed) {
+      setShowResults(true);
+    }
+  }, [gameSession?.is_completed]);
+
+  // Show results when all players have submitted (for joiners who might miss WebSocket notification)
+  useEffect(() => {
+    if (allPlayersSubmitted && gameSession && !gameSession.is_completed && playerScoresData) {
+      setShowResults(true);
+    }
+  }, [allPlayersSubmitted, gameSession, playerScoresData]);
+
+  // Reset answers when round changes and store previous round scores
   const prevRoundRef = useRef(null);
   useEffect(() => {
     if (gameSession && gameSession.current_round) {
@@ -213,18 +302,25 @@ export default function GameSessionPage() {
       
       // Only reset if round actually changed (not on initial load)
       if (prevRound !== null && prevRound !== currentRound) {
+        // Store current scores as previous round scores before they're cleared
+        const currentScoresResponse = playerScoresData?.data || playerScoresData || {};
+        const currentPlayerScores = Array.isArray(currentScoresResponse) ? currentScoresResponse : (currentScoresResponse.round_scores || []);
+        if (currentPlayerScores.length > 0) {
+          setPreviousRoundScores(currentPlayerScores);
+          setPreviousRoundNumber(prevRound);
+        }
         setIsSubmitted(false);
         setAnswers({});
         setValidationErrors({});
         setSubmittedPlayers(new Set());
-        setCountdown(null);
-        setShowResults(false);
-        refetchScores();
+        // Don't reset showResults here - keep it true so results remain visible
+        // It will be reset when user starts submitting for the new round
+        // Don't refetch scores immediately - keep showing previous round's results
       }
       
       prevRoundRef.current = currentRound;
     }
-  }, [gameSession?.current_round, refetchScores]);
+  }, [gameSession?.current_round, playerScoresData]);
 
   // Refetch scores with totals when game is completed
   useEffect(() => {
@@ -283,6 +379,14 @@ export default function GameSessionPage() {
 
   const handleAnswerChange = (gameType, value) => {
     const letter = finalLetter?.toUpperCase();
+    
+    // If user starts typing in a new round, hide the previous round's results and refetch scores
+    if (!isSubmitted && showResults && value.trim().length > 0) {
+      setShowResults(false);
+      setPreviousRoundScores(null);
+      setPreviousRoundNumber(null);
+      refetchScores();
+    }
     
     // Always update the answer value (allow typing)
     setAnswers(prev => ({
@@ -368,11 +472,6 @@ export default function GameSessionPage() {
     );
   };
 
-  const scoresResponse = playerScoresData?.data || playerScoresData || {};
-  const playerScores = Array.isArray(scoresResponse) ? scoresResponse : (scoresResponse.round_scores || []);
-  
-  const allPlayersSubmitted = players.length > 0 && playerScores.length === players.length;
-  
   const getPlayerAnswer = (playerId, gameTypeKey) => {
     const playerAnswer = playerScores.find(ps => ps.player === playerId);
     if (!playerAnswer || !playerAnswer.answers) return '';
@@ -487,11 +586,6 @@ export default function GameSessionPage() {
             </div>
           </div>
 
-          {countdown !== null && allPlayersSubmitted && (
-            <div className={styles.countdownDisplay}>
-              <Header text={`Next round starting in: ${countdown} seconds`} />
-            </div>
-          )}
         </>
       )}
 
@@ -581,7 +675,7 @@ export default function GameSessionPage() {
               <Text text="Answers submitted! Waiting for other players..." />
             )}
             {allPlayersSubmitted && (
-              <Text text={showResults ? `Round results! Next round in ${countdown || 0} seconds...` : "All players have submitted! See the results below."} />
+              <Text text="All players have submitted! See the results below." />
             )}
           </>
         ) : (
@@ -590,9 +684,33 @@ export default function GameSessionPage() {
       </div>
 
       {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
-        <div className={styles.resultsTable}>
-          <Header text="Results Table" />
-          <table className={styles.answersTable}>
+        <>
+          {isHost && allPlayersSubmitted && gameSession.total_rounds > 1 && !gameSession.is_completed && (
+            <div className={styles.advanceRoundSection}>
+              <Button 
+                onButtonClick={() => {
+                  advanceRoundMutation.mutate(roomId, {
+                    onSuccess: () => {
+                      refetchGameSession();
+                      refetchScores();
+                    },
+                    onError: (error) => {
+                      const errorMessage = error.response?.data?.error || 
+                                         error.response?.data?.detail ||
+                                         'Failed to advance round. Please try again.';
+                      alert(errorMessage);
+                    }
+                  });
+                }}
+                disabled={advanceRoundMutation.isPending}
+              >
+                {advanceRoundMutation.isPending ? 'Advancing...' : 'Continue to Next Round'}
+              </Button>
+            </div>
+          )}
+          <div className={styles.resultsTable}>
+            <Header text="Results Table" />
+            <table className={styles.answersTable}>
             <thead>
               <tr>
                 <th className={styles.tableHeader}>Category</th>
@@ -641,6 +759,7 @@ export default function GameSessionPage() {
             </tfoot>
           </table>
         </div>
+        </>
       )}
         </>
       )}

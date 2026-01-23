@@ -5,11 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 import random
 import string
-import threading
 from ..models import Room, GameSession, RoomPlayer, PlayerAnswer, GAME_TYPE_CHOICES
 from ..serializers.game_session_serializer import GameSessionSerializer, UpdateGameSessionSerializer
 from ..serializers.player_answer_serializer import SubmitAnswerSerializer, PlayerAnswerSerializer
-from ..utils import broadcast_room_update, broadcast_game_started, broadcast_round_advancing
+from ..utils import broadcast_room_update, broadcast_game_started
 
 
 class GetGameTypesView(APIView):
@@ -320,35 +319,8 @@ class SubmitAnswerView(APIView):
         player_answer.refresh_from_db()
         
         # Broadcast player submission notification
-        from ..utils import broadcast_player_submitted, schedule_round_advancement, broadcast_round_advancing
+        from ..utils import broadcast_player_submitted
         broadcast_player_submitted(room, room_player.user.username, all_players_submitted)
-        
-        # If all players submitted and game has multiple rounds, schedule automatic advancement
-        if all_players_submitted and game_session.total_rounds > 1 and not game_session.is_completed:
-            # Only schedule if not already scheduled
-            if not game_session.round_advance_scheduled:
-                game_session.round_advance_scheduled = True
-                game_session.save()
-                
-                # Broadcast countdown updates every second and schedule advancement
-                def countdown_updates():
-                    import time
-                    try:
-                        # Send countdown from 10 to 1
-                        for i in range(10, 0, -1):
-                            broadcast_round_advancing(room, i)
-                            time.sleep(1)
-                        # Send final countdown (0) at the end
-                        broadcast_round_advancing(room, 0)
-                    except Exception as e:
-                        print(f"Error in countdown thread: {e}")
-                
-                # Start countdown in background thread
-                countdown_thread = threading.Thread(target=countdown_updates, daemon=True)
-                countdown_thread.start()
-                
-                # Schedule round advancement after 10 seconds (right after countdown finishes)
-                schedule_round_advancement(room, 10)
         
         # Broadcast room update to show scores
         broadcast_room_update(room)
@@ -449,6 +421,9 @@ class AdvanceRoundView(APIView):
                 {'error': 'Not all players have submitted their answers for this round.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Reset round_advance_scheduled flag
+        game_session.round_advance_scheduled = False
         
         # Advance to next round
         if game_session.current_round < game_session.total_rounds:

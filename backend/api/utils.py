@@ -102,25 +102,6 @@ def broadcast_player_submitted(room, player_username, all_players_submitted=Fals
         )
 
 
-def broadcast_round_advancing(room, countdown_seconds):
-    """
-    Broadcast countdown notification for round advancement.
-    
-    Args:
-        room: The room object
-        countdown_seconds: Number of seconds remaining
-    """
-    channel_layer = get_channel_layer()
-    if channel_layer:
-        async_to_sync(channel_layer.group_send)(
-            f'room_{room.id}',
-            {
-                'type': 'round_advancing_notification',
-                'countdown_seconds': countdown_seconds
-            }
-        )
-
-
 def advance_round_internal(room_id_str):
     """
     Internal function to advance round. Called from thread with proper Django setup.
