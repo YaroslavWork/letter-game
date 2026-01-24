@@ -1,37 +1,313 @@
+/* Mobile-first responsive design */
 .loginPage {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 2rem;
-  background-color: var(--background);
+  padding: var(--spacing-md);
+  background: var(--gradient-playful);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Animated background decorations */
+.loginPage::before,
+.loginPage::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.1;
+  animation: float 20s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.loginPage::before {
+  width: 300px;
+  height: 300px;
+  background: var(--accent-purple);
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.loginPage::after {
+  width: 200px;
+  height: 200px;
+  background: var(--accent-blue);
+  bottom: -50px;
+  right: -50px;
+  animation-delay: 5s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* Form container */
 .form {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 2rem;
-  background-color: var(--background-light);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, 
+    rgba(240, 248, 255, 0.98) 0%, 
+    rgba(250, 240, 255, 0.95) 50%,
+    rgba(255, 240, 248, 0.98) 100%);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(20px);
+  animation: slideUp 0.5s ease-out;
+  margin: 0 auto;
 }
 
-.registerLink {
-  margin-top: 1rem;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header styling */
+.form h1 {
   text-align: center;
+  font-size: var(--font-size-xxlarge);
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.5px;
+}
+
+/* Input wrapper */
+.inputWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Input styling enhancement */
+.form .input-control {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+  border: 2px solid var(--border-muted);
+  border-radius: var(--border-radius-md);
+  background: var(--background-light);
+  color: var(--text);
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form .input-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(221, 49%, 33%, 0.1);
+  transform: translateY(-2px);
+}
+
+.form .input-control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.form .input-control.input-error {
+  border-color: var(--danger);
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Button styling */
+.form .button {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--button-text);
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: var(--spacing-sm);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form .button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.form .button:hover::before {
+  left: 100%;
+}
+
+.form .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(221, 49%, 33%, 0.3);
+}
+
+.form .button:active {
+  transform: translateY(0);
+}
+
+.form .button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Register link */
+.registerLink {
+  margin-top: var(--spacing-md);
+  text-align: center;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-muted);
 }
 
 .registerLink a {
   color: var(--primary);
   text-decoration: none;
   font-size: var(--font-size-small);
-  transition: color 0.2s;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+}
+
+.registerLink a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  transition: width 0.3s ease;
 }
 
 .registerLink a:hover {
   color: var(--hover-primary);
-  text-decoration: underline;
+}
+
+.registerLink a:hover::after {
+  width: 100%;
+}
+
+/* Decorative elements */
+.decorativeCircle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.decorativeCircle1 {
+  width: 150px;
+  height: 150px;
+  background: var(--accent-purple);
+  top: 10%;
+  right: 5%;
+  animation: float 15s infinite ease-in-out;
+}
+
+.decorativeCircle2 {
+  width: 100px;
+  height: 100px;
+  background: var(--accent-blue);
+  bottom: 15%;
+  left: 8%;
+  animation: float 12s infinite ease-in-out reverse;
+}
+
+/* Tablet and up */
+@media (min-width: 768px) {
+  .loginPage {
+    padding: var(--spacing-xl);
+  }
+
+  .form {
+    padding: var(--spacing-xxl);
+    max-width: 480px;
+  }
+
+  .form h1 {
+    font-size: 2.5rem;
+  }
+
+  .loginPage::before {
+    width: 400px;
+    height: 400px;
+  }
+
+  .loginPage::after {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+/* Desktop and up */
+@media (min-width: 1024px) {
+  .form {
+    max-width: 520px;
+    padding: 3rem;
+  }
+
+  .form h1 {
+    font-size: 3rem;
+  }
+
+  .decorativeCircle1 {
+    width: 200px;
+    height: 200px;
+  }
+
+  .decorativeCircle2 {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+  .form {
+    max-width: 560px;
+  }
 }

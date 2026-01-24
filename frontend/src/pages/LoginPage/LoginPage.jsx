@@ -110,26 +110,32 @@ export default function LoginPage() {
 
   return (
     <div className={styles.loginPage}>
+      <div className={styles.decorativeCircle1}></div>
+      <div className={styles.decorativeCircle2}></div>
       <form onSubmit={handleSubmit} noValidate className={styles.form} action="#" method="post">
-        <Header text={"Login"} />
+        <Header text={"Welcome Back! 🎮"} />
 
-        <Input 
-          type="text" 
-          name="username" 
-          value={formData.username} 
-          onChange={handleChange} 
-          placeholder="Username or Email"
-          error={errors.username} 
-        />
-        <Input 
-          type="password" 
-          name="password" 
-          value={formData.password} 
-          onChange={handleChange} 
-          placeholder="Password"
-          error={errors.password} 
-        />
-      
+        <div className={styles.inputWrapper}>
+          <Input 
+            type="text" 
+            name="username" 
+            value={formData.username} 
+            onChange={handleChange} 
+            placeholder="Username or Email"
+            error={errors.username} 
+          />
+        </div>
+
+        <div className={styles.inputWrapper}>
+          <Input 
+            type="password" 
+            name="password" 
+            value={formData.password} 
+            onChange={handleChange} 
+            placeholder="Password"
+            error={errors.password} 
+          />
+        </div>
 
         <Button type="submit" disabled={isPending}>
           {isPending ? 'Logging in...' : 'Login'}
