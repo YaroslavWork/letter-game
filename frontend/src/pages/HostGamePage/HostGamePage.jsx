@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useMutationStartGameSession, useRoom } from '../../features/hooks/index.hooks';
 import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
@@ -15,6 +16,7 @@ export default function HostGamePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { error: showError, warning: showWarning } = useNotification();
+  const { confirm } = useConfirmation();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
   const [gameSession, setGameSession] = useState(null);
@@ -219,8 +221,18 @@ export default function HostGamePage() {
     createRoom();
   };
 
-  const handleDeleteRoom = () => {
-    if (room && window.confirm('Are you sure you want to delete this room?')) {
+  const handleDeleteRoom = async () => {
+    if (!room) return;
+    
+    const confirmed = await confirm({
+      title: 'Delete Room',
+      message: 'Are you sure you want to delete this room? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmButtonStyle: 'danger',
+    });
+
+    if (confirmed) {
       deleteRoomMutation.mutate(room.id, {
         onSuccess: () => {
           wsClient.disconnect();
@@ -236,8 +248,18 @@ export default function HostGamePage() {
     }
   };
 
-  const handleDeletePlayer = (playerId) => {
-    if (room && window.confirm('Are you sure you want to remove this player?')) {
+  const handleDeletePlayer = async (playerId) => {
+    if (!room) return;
+    
+    const confirmed = await confirm({
+      title: 'Remove Player',
+      message: 'Are you sure you want to remove this player from the room?',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      confirmButtonStyle: 'danger',
+    });
+
+    if (confirmed) {
       deletePlayerMutation.mutate(
         { roomId: room.id, playerId },
         {
@@ -249,7 +271,7 @@ export default function HostGamePage() {
     }
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!room) return;
     
     // Check if game types are configured
@@ -258,7 +280,15 @@ export default function HostGamePage() {
       return;
     }
     
-    if (window.confirm('Are you sure you want to start the game? All players will be notified.')) {
+    const confirmed = await confirm({
+      title: 'Start Game',
+      message: 'Are you sure you want to start the game? All players will be notified.',
+      confirmText: 'Start Game',
+      cancelText: 'Cancel',
+      confirmButtonStyle: 'success',
+    });
+
+    if (confirmed) {
       startGameSessionMutation.mutate(room.id, {
         onSuccess: () => {
           // Navigation will happen via WebSocket message

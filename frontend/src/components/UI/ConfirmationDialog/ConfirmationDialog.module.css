@@ -1,0 +1,172 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.body {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.message {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelButton {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #e8e8e8;
+}
+
+.confirmButton {
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.confirmButton:hover {
+  transform: translateY(-1px);
+}
+
+.confirmButton:active {
+  transform: translateY(0);
+}
+
+.confirmButtonPrimary {
+  background-color: #007bff;
+  color: white;
+}
+
+.confirmButtonPrimary:hover {
+  background-color: #0056b3;
+}
+
+.confirmButtonDanger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.confirmButtonDanger:hover {
+  background-color: #c82333;
+}
+
+.confirmButtonSuccess {
+  background-color: #28a745;
+  color: white;
+}
+
+.confirmButtonSuccess:hover {
+  background-color: #218838;
+}
+
+.confirmButtonWarning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.confirmButtonWarning:hover {
+  background-color: #e0a800;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dialog {
+    width: 95%;
+    max-width: none;
+  }
+
+  .header {
+    padding: 16px 20px;
+  }
+
+  .body {
+    padding: 20px;
+  }
+
+  .footer {
+    padding: 12px 20px;
+    flex-direction: column-reverse;
+  }
+
+  .footer button {
+    width: 100%;
+  }
+}

@@ -7,6 +7,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ConfirmationProvider } from './contexts/ConfirmationContext';
 
 const queryClient = new QueryClient();
 
@@ -17,7 +18,9 @@ root.render(
       <BrowserRouter>
         <AuthProvider>
           <NotificationProvider>
-            <App />
+            <ConfirmationProvider>
+              <App />
+            </ConfirmationProvider>
           </NotificationProvider>
         </AuthProvider>
       </BrowserRouter>

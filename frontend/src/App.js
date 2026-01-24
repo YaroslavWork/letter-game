@@ -8,6 +8,7 @@ import JoinGamePage from './pages/JoinGamePage/JoinGamePage';
 import GameSessionPage from './pages/GameSessionPage/GameSessionPage';
 import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
 import NotificationContainer from './components/UI/Notification/NotificationContainer';
+import ConfirmationDialog from './components/UI/ConfirmationDialog/ConfirmationDialog';
 import './App.css';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         <Route path="*" element={ <NotFoundPage /> } />
       </Routes>
       <NotificationContainer />
+      <ConfirmationDialog />
     </>
   );
 }
