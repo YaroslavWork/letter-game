@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
@@ -11,6 +12,7 @@ import styles from './GameSessionPage.module.css';
 export default function GameSessionPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { error: showError, success: showSuccess, warning: showWarning } = useNotification();
   const { roomId } = useParams();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -104,7 +106,7 @@ export default function GameSessionPage() {
       }
       refetchScores();
     } else if (data.type === 'room_deleted_notification') {
-      alert('The room has been deleted.');
+      showError('The room has been deleted.');
       wsClient.disconnect();
       localStorage.removeItem('room_id');
       localStorage.removeItem('room_type');
@@ -357,7 +359,7 @@ export default function GameSessionPage() {
           setIsSubmitted(true);
           refetchScores();
           // Show notification that auto-submit happened
-          alert('Time is up! Your answers have been automatically submitted.');
+          showWarning('Time is up! Your answers have been automatically submitted.');
         },
         onError: (error) => {
           // Reset auto-submitted flag on error so user can try again
@@ -365,7 +367,7 @@ export default function GameSessionPage() {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              'Failed to auto-submit answers. Please submit manually.';
-          alert(errorMessage);
+          showError(errorMessage);
         }
       }
     );
@@ -511,7 +513,7 @@ export default function GameSessionPage() {
     // Check for validation errors
     const hasErrors = Object.keys(validationErrors).length > 0;
     if (hasErrors) {
-      alert('Please fix validation errors before submitting. All words must start with the game letter or be left empty.');
+      showError('Please fix validation errors before submitting. All words must start with the game letter or be left empty.');
       return;
     }
 
@@ -529,7 +531,7 @@ export default function GameSessionPage() {
     });
 
     if (invalidAnswers.length > 0) {
-      alert('Some answers do not start with the correct letter. Please fix them before submitting.');
+      showError('Some answers do not start with the correct letter. Please fix them before submitting.');
       return;
     }
 
@@ -544,13 +546,13 @@ export default function GameSessionPage() {
         onSuccess: () => {
           setIsSubmitted(true);
           refetchScores();
-          alert('Answers submitted successfully!');
+          showSuccess('Answers submitted successfully!');
         },
         onError: (error) => {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              'Failed to submit answers. Please try again.';
-          alert(errorMessage);
+          showError(errorMessage);
         }
       }
     );
@@ -787,7 +789,7 @@ export default function GameSessionPage() {
                       const errorMessage = error.response?.data?.error || 
                                          error.response?.data?.detail ||
                                          'Failed to advance round. Please try again.';
-                      alert(errorMessage);
+                      showError(errorMessage);
                     }
                   });
                 }}

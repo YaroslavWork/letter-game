@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useMutationRegisterData } from '../../features/hooks/index.hooks';
+import { useNotification } from '../../contexts/NotificationContext';
 import { Input } from '../../components/UI/Input/Input';
 import Button from '../../components/UI/Button/Button';
 import Header from '../../components/UI/Header/Header';
@@ -18,6 +19,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState(initialState);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const { success: showSuccess } = useNotification();
 
   const { mutate, isPending, isError, error: apiError } = useMutationRegisterData();
 
@@ -73,7 +75,7 @@ export default function RegisterPage() {
 
       mutate(apiData, {
         onSuccess: () => {
-          alert('Registration successful! Please log in.')
+          showSuccess('Registration successful! Please log in.')
           setFormData(initialState);
           navigate('/login');
         },

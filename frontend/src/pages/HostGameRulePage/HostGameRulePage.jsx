@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { useRoom, useGameTypes, useGameSession, useMutationUpdateGameSession } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
@@ -14,6 +15,7 @@ export default function HostGameRulePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
+  const { success: showSuccess, error: showError } = useNotification();
   const { roomId } = useParams();
   const [letter, setLetter] = useState('');
   const [isRandomLetter, setIsRandomLetter] = useState(true);
@@ -21,7 +23,6 @@ export default function HostGameRulePage() {
   const [totalRounds, setTotalRounds] = useState(1);
   const [roundTimerSeconds, setRoundTimerSeconds] = useState(60);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   const { data: roomData, isLoading: isLoadingRoom } = useRoom(roomId);
   const { data: gameTypesData, isLoading: isLoadingTypes } = useGameTypes();
@@ -48,7 +49,7 @@ export default function HostGameRulePage() {
       // Do NOT navigate - stay on the configuration page
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
-      alert('The room has been deleted.');
+      showError('The room has been deleted.');
       wsClient.disconnect();
       // Clear stored room info
       localStorage.removeItem('room_id');
@@ -146,7 +147,6 @@ export default function HostGameRulePage() {
 
   const handleSave = () => {
     setError('');
-    setSuccessMessage('');
 
     // If rounds > 1, always use random letters
     if (totalRounds > 1) {
@@ -210,19 +210,14 @@ export default function HostGameRulePage() {
           
           // Clear any errors and show success message
           setError('');
-          setSuccessMessage('Game rules saved successfully!');
-          
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            setSuccessMessage('');
-          }, 3000);
+          showSuccess('Game rules saved successfully!');
         },
         onError: (error) => {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              'Failed to update game rules. Please try again.';
           setError(errorMessage);
-          setSuccessMessage('');
+          showError(errorMessage);
         }
       }
     );
@@ -342,12 +337,6 @@ export default function HostGameRulePage() {
       {error && (
         <div className={styles.error}>
           <Text text={error} />
-        </div>
-      )}
-
-      {successMessage && (
-        <div className={styles.success}>
-          <Text text={successMessage} />
         </div>
       )}
 

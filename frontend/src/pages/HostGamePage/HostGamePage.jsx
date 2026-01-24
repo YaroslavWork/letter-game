@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useMutationStartGameSession, useRoom } from '../../features/hooks/index.hooks';
 import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
@@ -13,6 +14,7 @@ import styles from './HostGamePage.module.css';
 export default function HostGamePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { error: showError, warning: showWarning } = useNotification();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
   const [gameSession, setGameSession] = useState(null);
@@ -60,7 +62,7 @@ export default function HostGamePage() {
       }
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
-      alert('The room has been deleted.');
+      showError('The room has been deleted.');
       wsClient.disconnect();
       // Clear stored room info
       localStorage.removeItem('room_id');
@@ -202,12 +204,12 @@ export default function HostGamePage() {
         if (roomData && roomData.id) {
           handleRoomCreated(roomData);
         } else {
-          alert('Failed to create room. Invalid response.');
+          showError('Failed to create room. Invalid response.');
           roomCreatedRef.current = false;
           setIsConnecting(false);
         }
       } catch (error) {
-        alert('Failed to create room. Please try again.');
+        showError('Failed to create room. Please try again.');
         roomCreatedRef.current = false;
         setIsConnecting(false);
       }
@@ -227,7 +229,7 @@ export default function HostGamePage() {
           navigate('/');
         },
         onError: () => {
-          alert('Failed to delete room. Please try again.');
+          showError('Failed to delete room. Please try again.');
         }
       });
     }
@@ -239,7 +241,7 @@ export default function HostGamePage() {
         { roomId: room.id, playerId },
         {
           onError: () => {
-            alert('Failed to remove player. Please try again.');
+            showError('Failed to remove player. Please try again.');
           }
         }
       );
@@ -251,7 +253,7 @@ export default function HostGamePage() {
     
     // Check if game types are configured
     if (!gameSession || !gameSession.selected_types || gameSession.selected_types.length === 0) {
-      alert('Please configure game types before starting the game.');
+      showWarning('Please configure game types before starting the game.');
       return;
     }
     
@@ -264,7 +266,7 @@ export default function HostGamePage() {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              'Failed to start game. Please try again.';
-          alert(errorMessage);
+          showError(errorMessage);
         }
       });
     }

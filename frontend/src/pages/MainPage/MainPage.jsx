@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { useRoom } from '../../features/hooks/index.hooks';
 import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
@@ -12,6 +13,7 @@ import styles from './MainPage.module.css'
 export default function MainPage () {
     const navigate = useNavigate();
     const { user, isAuthenticated, isLoading, logout } = useAuth();
+    const { error: showError, warning: showWarning } = useNotification();
     const [hasStoredRoom, setHasStoredRoom] = useState(false);
     const [isReconnecting, setIsReconnecting] = useState(false);
 
@@ -49,7 +51,7 @@ export default function MainPage () {
         const token = localStorage.getItem('access_token');
 
         if (!roomId || !roomType || !token) {
-            alert('No room information found. Please host or join a room first.');
+            showWarning('No room information found. Please host or join a room first.');
             // Clear invalid room info
             localStorage.removeItem('room_id');
             localStorage.removeItem('room_type');
@@ -117,7 +119,7 @@ export default function MainPage () {
             isHandled = true;
             setIsReconnecting(false);
             cleanup();
-            alert('Failed to reconnect to the room. The room may no longer exist.');
+            showError('Failed to reconnect to the room. The room may no longer exist.');
             // Clear invalid room info
             localStorage.removeItem('room_id');
             localStorage.removeItem('room_type');
@@ -130,7 +132,7 @@ export default function MainPage () {
                 isHandled = true;
                 setIsReconnecting(false);
                 cleanup();
-                alert('Failed to reconnect to the room. The room may no longer exist.');
+                showError('Failed to reconnect to the room. The room may no longer exist.');
                 // Clear invalid room info
                 localStorage.removeItem('room_id');
                 localStorage.removeItem('room_type');
@@ -151,7 +153,7 @@ export default function MainPage () {
                 isHandled = true;
                 setIsReconnecting(false);
                 cleanup();
-                alert('Connection timeout. Please try again.');
+                showWarning('Connection timeout. Please try again.');
             }
         }, 5000);
     };

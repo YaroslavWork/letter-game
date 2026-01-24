@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { useMutationJoinRoom, useMutationLeaveRoom } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import { Input } from '../../components/UI/Input/Input';
@@ -12,6 +13,7 @@ import styles from './JoinGamePage.module.css';
 export default function JoinGamePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { error: showError, warning: showWarning } = useNotification();
   const [roomId, setRoomId] = useState('');
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -77,7 +79,7 @@ export default function JoinGamePage() {
       
       // If user was previously in room but now removed, redirect
       if (wasInRoom && !isUserStillInRoom) {
-        alert('You have been removed from the room by the host.');
+        showWarning('You have been removed from the room by the host.');
         wsClient.disconnect();
         // Clear stored room info
         localStorage.removeItem('room_id');
@@ -96,7 +98,7 @@ export default function JoinGamePage() {
       const currentUserId = String(user?.id);
       
       if (removedUserId === currentUserId) {
-        alert('You have been removed from the room by the host.');
+        showWarning('You have been removed from the room by the host.');
         wsClient.disconnect();
         // Clear stored room info
         localStorage.removeItem('room_id');
@@ -109,7 +111,7 @@ export default function JoinGamePage() {
       }
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
-      alert('The room has been deleted by the host.');
+      showError('The room has been deleted by the host.');
       wsClient.disconnect();
       // Clear stored room info
       localStorage.removeItem('room_id');
