@@ -1,98 +1,559 @@
 .hostGamePage {
+  min-height: 100vh;
+  padding: var(--spacing-md);
+  position: relative;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, 
+    var(--background) 0%, 
+    var(--background-dark) 100%);
+}
+
+/* Decorative circles */
+.decorativeCircle1,
+.decorativeCircle2 {
+  position: fixed;
+  border-radius: var(--border-radius-full);
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.decorativeCircle1 {
+  width: 200px;
+  height: 200px;
+  background: var(--gradient-playful);
+  top: -50px;
+  left: -50px;
+  animation: float 6s ease-in-out infinite;
+}
+
+.decorativeCircle2 {
+  width: 150px;
+  height: 150px;
+  background: var(--gradient-primary);
+  top: 20%;
+  right: -30px;
+  animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+/* Header Section */
+.headerSection {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+  z-index: 1;
+  padding-top: var(--spacing-md);
+}
+
+/* Top Section - Players and Room Info */
+.topSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
+}
+
+/* Players Section - Left Upper Corner */
+.playersSection {
+  width: 100%;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 var(--spacing-md) 0;
+  padding: var(--spacing-sm) 0;
+}
+
+.icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.count {
+  font-size: var(--font-size-base);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.playersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+  min-height: 120px;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
-  gap: 1.5rem;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+  color: var(--text-muted);
 }
 
-.roomInfo {
+.emptyIcon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.playerTile {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 600px;
-}
-
-.playersList {
-  width: 100%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.playerItem {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  background-color: #f9f9f9;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(255, 255, 255, 0.7) 100%);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  animation: slideUp 0.4s ease-out;
+  animation-fill-mode: both;
 }
 
-.deleteButton {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+.playerTile:nth-child(1) { animation-delay: 0.1s; }
+.playerTile:nth-child(2) { animation-delay: 0.2s; }
+.playerTile:nth-child(3) { animation-delay: 0.3s; }
+.playerTile:nth-child(4) { animation-delay: 0.4s; }
+.playerTile:nth-child(n+5) { animation-delay: 0.5s; }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.actions {
+.playerTile:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.hostTile {
+  background: linear-gradient(135deg, 
+    rgba(255, 243, 205, 0.9) 0%, 
+    rgba(255, 235, 180, 0.9) 100%);
+  border: 2px solid rgba(255, 193, 7, 0.4);
+}
+
+.playerAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-full);
+  background: var(--gradient-playful);
   display: flex;
-  gap: 1rem;
-  width: 100%;
-  max-width: 600px;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  margin-bottom: var(--spacing-xs);
 }
 
-.actions button {
-  flex: 1;
+.hostTile .playerAvatar {
+  background: linear-gradient(135deg, 
+    hsl(52 100% 50%) 0%, 
+    hsl(30 90% 55%) 100%);
 }
 
-.gameRules {
-  width: 100%;
-  max-width: 600px;
+.playerInfo {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: #f0f8ff;
-  border-radius: 8px;
-  border: 2px solid #4a90e2;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.playerName {
+  margin: 0;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.hostBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: hsl(30 90% 45%);
+  background: rgba(255, 193, 7, 0.2);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+}
+
+.removeButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--border-radius-full);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.removeButton:hover {
+  background: var(--danger);
+  color: white;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.removeButton:active {
+  transform: rotate(90deg) scale(0.95);
+}
+
+/* Room Info Section - Right Corner */
+.roomInfoSection {
+  width: 100%;
+}
+
+.roomInfoCard {
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+  margin-bottom: var(--spacing-md);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.infoItem:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: var(--font-size-base);
+  color: var(--text);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.gameRulesCard {
+  padding: var(--spacing-md);
+  background: rgba(240, 248, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(74, 144, 226, 0.3);
+}
+
+.rulesTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 var(--spacing-md) 0;
 }
 
 .ruleItem {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.ruleItem:last-child {
+  margin-bottom: 0;
+}
+
+.ruleLabel {
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ruleValue {
+  font-size: var(--font-size-base);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .typesList {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
 }
 
 .typeTag {
-  padding: 0.5rem 1rem;
-  background-color: #4a90e2;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: linear-gradient(135deg, 
+    var(--accent-blue) 0%, 
+    var(--accent-purple) 100%);
   color: white;
-  border-radius: 20px;
-  font-size: 0.875rem;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.noRules {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.noRules p {
+  margin: 0;
+  font-size: var(--font-size-small);
+}
+
+/* Actions Section */
+.actionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.secondaryActions {
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.secondaryActions button {
+  flex: 1;
+}
+
+/* Create Room Form */
 .createRoomForm {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--spacing-lg);
   width: 100%;
   max-width: 400px;
-  padding: 1.5rem;
-  background-color: #ffffff;
-  border-radius: 8px;
-  border: 2px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-xl);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+  margin: 0 auto;
+}
+
+/* Loading State */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  gap: var(--spacing-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.loadingSpinner {
+  font-size: 4rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loadingText {
+  font-size: var(--font-size-large);
+  color: var(--text);
+  font-weight: 600;
+  margin: 0;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Error State */
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  gap: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
+  padding: var(--spacing-lg);
+}
+
+.errorCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+  max-width: 400px;
+  width: 100%;
+}
+
+.errorIcon {
+  font-size: 3rem;
+}
+
+.errorText {
+  font-size: var(--font-size-base);
+  color: var(--text);
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.errorActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: 400px;
+}
+
+.errorActions button {
+  width: 100%;
+}
+
+/* Create Room Container */
+.createRoomContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  gap: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
+  padding: var(--spacing-lg);
+}
+
+/* Responsive Design - Mobile First */
+@media (min-width: 768px) {
+  .hostGamePage {
+    padding: var(--spacing-xl);
+  }
+
+  .topSection {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .playersSection {
+    flex: 1;
+    max-width: 60%;
+  }
+
+  .roomInfoSection {
+    flex: 1;
+    max-width: 40%;
+  }
+
+  .playersGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .actionsSection {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .createRoomForm {
+    max-width: 500px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .playersGrid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+
+  .decorativeCircle1 {
+    width: 300px;
+    height: 300px;
+  }
+
+  .decorativeCircle2 {
+    width: 200px;
+    height: 200px;
+  }
 }

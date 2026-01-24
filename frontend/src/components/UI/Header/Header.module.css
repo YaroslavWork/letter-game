@@ -15,6 +15,32 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
+.header.playful {
+  background: linear-gradient(135deg, 
+    hsl(200 80% 55%) 0%, 
+    hsl(270 70% 60%) 30%,
+    hsl(330 70% 65%) 60%,
+    hsl(200 80% 55%) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+  position: relative;
+  animation: gradientShift 4s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

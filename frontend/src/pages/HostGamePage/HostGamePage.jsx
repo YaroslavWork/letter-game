@@ -306,7 +306,10 @@ export default function HostGamePage() {
   if (isConnecting || (!room && roomCreatedRef.current && !createRoomMutation.isError)) {
     return (
       <div className={styles.hostGamePage}>
-        <Text text="Creating room..." />
+        <div className={styles.loadingState}>
+          <div className={styles.loadingSpinner}>🎮</div>
+          <p className={styles.loadingText}>Creating room...</p>
+        </div>
       </div>
     );
   }
@@ -314,21 +317,40 @@ export default function HostGamePage() {
   if (!room && createRoomMutation.isError) {
     return (
       <div className={styles.hostGamePage}>
-        <Header text="Host Game" />
-        <Text text="Failed to create room" />
-        <Button onButtonClick={() => {
-          roomCreatedRef.current = false;
-          setIsConnecting(false);
-          setRoomName('');
-          setRoomNameError('');
-        }}>Try Again</Button>
-        <Button onButtonClick={() => {
-          roomCreatedRef.current = false;
-          setIsConnecting(false);
-          setRoomName('');
-          setRoomNameError('');
-          navigate('/');
-        }}>Go Back</Button>
+        <div className={styles.decorativeCircle1}></div>
+        <div className={styles.decorativeCircle2}></div>
+        <div className={styles.errorState}>
+          <Header text="Host Game" variant="playful" />
+          <div className={styles.errorCard}>
+            <span className={styles.errorIcon}>⚠️</span>
+            <p className={styles.errorText}>Failed to create room</p>
+          </div>
+          <div className={styles.errorActions}>
+            <Button 
+              onButtonClick={() => {
+                roomCreatedRef.current = false;
+                setIsConnecting(false);
+                setRoomName('');
+                setRoomNameError('');
+              }}
+              variant="playful"
+            >
+              Try Again
+            </Button>
+            <Button 
+              onButtonClick={() => {
+                roomCreatedRef.current = false;
+                setIsConnecting(false);
+                setRoomName('');
+                setRoomNameError('');
+                navigate('/');
+              }}
+              variant="warning"
+            >
+              Go Back
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -336,21 +358,40 @@ export default function HostGamePage() {
   if (!room && roomCreatedRef.current && !isConnecting) {
     return (
       <div className={styles.hostGamePage}>
-        <Header text="Host Game" />
-        <Text text="Failed to create room. Please try again." />
-        <Button onButtonClick={() => {
-          roomCreatedRef.current = false;
-          setIsConnecting(false);
-          setRoomName('');
-          setRoomNameError('');
-        }}>Try Again</Button>
-        <Button onButtonClick={() => {
-          roomCreatedRef.current = false;
-          setIsConnecting(false);
-          setRoomName('');
-          setRoomNameError('');
-          navigate('/');
-        }}>Go Back</Button>
+        <div className={styles.decorativeCircle1}></div>
+        <div className={styles.decorativeCircle2}></div>
+        <div className={styles.errorState}>
+          <Header text="Host Game" variant="playful" />
+          <div className={styles.errorCard}>
+            <span className={styles.errorIcon}>⚠️</span>
+            <p className={styles.errorText}>Failed to create room. Please try again.</p>
+          </div>
+          <div className={styles.errorActions}>
+            <Button 
+              onButtonClick={() => {
+                roomCreatedRef.current = false;
+                setIsConnecting(false);
+                setRoomName('');
+                setRoomNameError('');
+              }}
+              variant="playful"
+            >
+              Try Again
+            </Button>
+            <Button 
+              onButtonClick={() => {
+                roomCreatedRef.current = false;
+                setIsConnecting(false);
+                setRoomName('');
+                setRoomNameError('');
+                navigate('/');
+              }}
+              variant="warning"
+            >
+              Go Back
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -358,28 +399,38 @@ export default function HostGamePage() {
   if (!room) {
     return (
       <div className={styles.hostGamePage}>
-        <Header text="Host Game" />
-        <div className={styles.createRoomForm}>
-          <Input
-            type="text"
-            name="roomName"
-            value={roomName}
-            onChange={(e) => {
-              setRoomName(e.target.value);
-              setRoomNameError('');
-            }}
-            placeholder="Enter room name (e.g., My Game Room)"
-            error={roomNameError}
-          />
-          <Button 
-            onButtonClick={handleCreateRoom}
-            disabled={createRoomMutation.isPending || !roomName.trim()}
-          >
-            {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
-          </Button>
-          <Button onButtonClick={() => navigate('/')}>
-            Back
-          </Button>
+        <div className={styles.decorativeCircle1}></div>
+        <div className={styles.decorativeCircle2}></div>
+        <div className={styles.createRoomContainer}>
+          <Header text="Host Game" variant="playful" />
+          <div className={styles.createRoomForm}>
+            <Input
+              type="text"
+              name="roomName"
+              value={roomName}
+              onChange={(e) => {
+                setRoomName(e.target.value);
+                setRoomNameError('');
+              }}
+              placeholder="Enter room name (e.g., My Game Room)"
+              error={roomNameError}
+            />
+            <Button 
+              onButtonClick={handleCreateRoom}
+              disabled={createRoomMutation.isPending || !roomName.trim()}
+              variant="playful"
+              fullWidth
+            >
+              {createRoomMutation.isPending ? '⏳ Creating...' : '🚀 Create Room'}
+            </Button>
+            <Button 
+              onButtonClick={() => navigate('/')}
+              variant="warning"
+              fullWidth
+            >
+              ← Back
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -387,79 +438,152 @@ export default function HostGamePage() {
 
   return (
     <div className={styles.hostGamePage}>
-      <Header text={`Host Game - ${room.name || 'Room'}`} />
+      <div className={styles.decorativeCircle1}></div>
+      <div className={styles.decorativeCircle2}></div>
       
-      <div className={styles.roomInfo}>
-        <Text text={`Room ID: ${room.id}`} />
-        <Text text={`Room Name: ${room.name || 'Unnamed Room'}`} />
-        <Text text={`Players: ${players.length}`} />
+      <div className={styles.headerSection}>
+        <Header text={`${room.name || 'Room'}`} variant="playful" />
       </div>
 
-      <div className={styles.playersList}>
-        <Header text="Players" />
-        {players.map((player) => (
-          <div key={player.id} className={styles.playerItem}>
-            <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}`} />
-            {player.user_id !== room.host_id && (
-              <Button 
-                onButtonClick={() => handleDeletePlayer(player.id)}
-                className={styles.deleteButton}
-              >
-                Remove
-              </Button>
+      <div className={styles.topSection}>
+        {/* Players Tiles - Left Upper Corner */}
+        <div className={styles.playersSection}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.icon}>👥</span>
+            Players <span className={styles.count}>({players.length})</span>
+          </h2>
+          <div className={styles.playersGrid}>
+            {players.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>No players yet</p>
+                <span className={styles.emptyIcon}>🎮</span>
+              </div>
+            ) : (
+              players.map((player) => (
+                <div 
+                  key={player.id} 
+                  className={`${styles.playerTile} ${player.user_id === room.host_id ? styles.hostTile : ''}`}
+                >
+                  <div className={styles.playerAvatar}>
+                    {(player.game_name || player.username || 'P').charAt(0).toUpperCase()}
+                  </div>
+                  <div className={styles.playerInfo}>
+                    <p className={styles.playerName}>
+                      {player.game_name || player.username}
+                    </p>
+                    {player.user_id === room.host_id && (
+                      <span className={styles.hostBadge}>👑 Host</span>
+                    )}
+                  </div>
+                  {player.user_id !== room.host_id && (
+                    <button 
+                      className={styles.removeButton}
+                      onClick={() => handleDeletePlayer(player.id)}
+                      aria-label="Remove player"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))
             )}
           </div>
-        ))}
-      </div>
+        </div>
 
-      {gameSession && (
-        <div className={styles.gameRules}>
-          <Header text="Current Game Rules" />
-          <div className={styles.ruleItem}>
-            <Text text={`Letter: ${gameSession.final_letter || (gameSession.is_random_letter ? 'Random (will be selected when game starts)' : 'Not set')}`} />
-          </div>
-          {gameSession.selected_types && gameSession.selected_types.length > 0 && (
-            <div className={styles.ruleItem}>
-              <Text text="Selected Types:" />
-              <div className={styles.typesList}>
-                {gameSession.selected_types_display?.map((type, index) => (
-                  <div key={index} className={styles.typeTag}>
-                    <Text text={type} />
-                  </div>
-                ))}
-              </div>
+        {/* Room Info - Right Corner */}
+        <div className={styles.roomInfoSection}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.icon}>🏠</span>
+            Room Info
+          </h2>
+          <div className={styles.roomInfoCard}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Room ID</span>
+              <span className={styles.infoValue}>{room.id}</span>
             </div>
-          )}
-          {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
-            <div className={styles.ruleItem}>
-              <Text text="No game types configured yet. Click 'Configure Game Rules' to set up the game." />
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Room Name</span>
+              <span className={styles.infoValue}>{room.name || 'Unnamed Room'}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Total Players</span>
+              <span className={styles.infoValue}>{players.length}</span>
+            </div>
+          </div>
+
+          {gameSession && (
+            <div className={styles.gameRulesCard}>
+              <h3 className={styles.rulesTitle}>
+                <span className={styles.icon}>⚙️</span>
+                Game Rules
+              </h3>
+              <div className={styles.ruleItem}>
+                <span className={styles.ruleLabel}>Letter:</span>
+                <span className={styles.ruleValue}>
+                  {gameSession.final_letter || (gameSession.is_random_letter ? '🎲 Random' : 'Not set')}
+                </span>
+              </div>
+              {gameSession.selected_types && gameSession.selected_types.length > 0 && (
+                <div className={styles.ruleItem}>
+                  <span className={styles.ruleLabel}>Types:</span>
+                  <div className={styles.typesList}>
+                    {gameSession.selected_types_display?.map((type, index) => (
+                      <span key={index} className={styles.typeTag}>
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
+                <div className={styles.noRules}>
+                  <span className={styles.emptyIcon}>📝</span>
+                  <p>No game types configured yet</p>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      <div className={styles.actions}>
-        <Button onButtonClick={() => navigate(`/host/rules/${room.id}`)}>
-          Configure Game Rules
+      {/* Action Buttons */}
+      <div className={styles.actionsSection}>
+        <Button 
+          onButtonClick={() => navigate(`/host/rules/${room.id}`)}
+          variant="playful"
+          fullWidth
+        >
+          ⚙️ Configure Game Rules
         </Button>
         <Button 
           onButtonClick={handleStartGame}
           disabled={startGameSessionMutation.isPending || !gameSession || !gameSession.selected_types || gameSession.selected_types.length === 0}
+          variant="success"
+          fullWidth
         >
-          {startGameSessionMutation.isPending ? 'Starting...' : 'Start a game'}
+          {startGameSessionMutation.isPending ? '⏳ Starting...' : '🚀 Start Game'}
         </Button>
-        <Button onButtonClick={handleDeleteRoom}>
-          Delete Room
-        </Button>
-        <Button onButtonClick={() => {
-          wsClient.disconnect();
-          // Clear stored room info
-          localStorage.removeItem('room_id');
-          localStorage.removeItem('room_type');
-          navigate('/');
-        }}>
-          Leave
-        </Button>
+        <div className={styles.secondaryActions}>
+          <Button 
+            onButtonClick={handleDeleteRoom}
+            variant="danger"
+            size="small"
+          >
+            🗑️ Delete Room
+          </Button>
+          <Button 
+            onButtonClick={() => {
+              wsClient.disconnect();
+              localStorage.removeItem('room_id');
+              localStorage.removeItem('room_type');
+              navigate('/');
+            }}
+            variant="warning"
+            size="small"
+          >
+            🚪 Leave
+          </Button>
+        </div>
       </div>
     </div>
   );
