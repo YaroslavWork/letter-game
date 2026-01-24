@@ -312,86 +312,171 @@ export default function JoinGamePage() {
   if (!room) {
     return (
       <div className={styles.joinGamePage}>
-        <Header text="Join Game" />
-        
-        <form onSubmit={handleJoinRoom} className={styles.joinForm}>
-          <Input
-            type="text"
-            name="roomId"
-            value={roomId}
-            onChange={(e) => {
-              setRoomId(e.target.value);
-              setError('');
-            }}
-            placeholder="Enter Room ID"
-          />
+        <div className={styles.decorativeCircle1}></div>
+        <div className={styles.decorativeCircle2}></div>
+        <div className={styles.joinContainer}>
+          <Header text="Join Game" variant="playful" />
           
-          <Button type="submit" disabled={joinRoomMutation.isPending}>
-            {joinRoomMutation.isPending ? 'Joining...' : 'Join Room'}
-          </Button>
-        </form>
+          <form onSubmit={handleJoinRoom} className={styles.joinForm}>
+            <Input
+              type="text"
+              name="roomId"
+              value={roomId}
+              onChange={(e) => {
+                setRoomId(e.target.value);
+                setError('');
+              }}
+              placeholder="Enter Room ID"
+            />
+            
+            <Button 
+              type="submit" 
+              disabled={joinRoomMutation.isPending}
+              variant="playful"
+              fullWidth
+            >
+              {joinRoomMutation.isPending ? '⏳ Joining...' : '🚀 Join Room'}
+            </Button>
+          </form>
 
-        <Button onButtonClick={() => navigate('/')}>
-          Back to Home
-        </Button>
+          <Button 
+            onButtonClick={() => navigate('/')}
+            variant="warning"
+            fullWidth
+          >
+            ← Back to Home
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.joinGamePage}>
-      <Header text={room ? `Joined Room - ${room.name}` : "Joined Room"} />
+      <div className={styles.decorativeCircle1}></div>
+      <div className={styles.decorativeCircle2}></div>
       
-      <div className={styles.roomInfo}>
-        <Text text={`Room ID: ${room.id}`} />
-        <Text text={`Room Name: ${room.name}`} />
-        <Text text={`Host: ${room.host_game_name || room.host_username}`} />
-        <Text text={`Players: ${players.length}`} />
+      <div className={styles.headerSection}>
+        <Header text={`${room.name || 'Room'}`} variant="playful" />
       </div>
 
-      <div className={styles.playersList}>
-        <Header text="Players" />
-        {players.map((player) => (
-          <div key={player.id} className={styles.playerItem}>
-            <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}`} />
-          </div>
-        ))}
-      </div>
-
-      <div className={styles.gameRules}>
-        <Header text="Game Rules" />
-        {gameSession ? (
-          <>
-            <div className={styles.ruleItem}>
-              <Text text={`Letter: ${gameSession.final_letter || (gameSession.is_random_letter ? 'Random (will be selected when game starts)' : 'Not set')}`} />
-            </div>
-            {gameSession.selected_types && gameSession.selected_types.length > 0 ? (
-              <div className={styles.ruleItem}>
-                <Text text="Selected Types:" />
-                <div className={styles.typesList}>
-                  {gameSession.selected_types_display?.map((type, index) => (
-                    <div key={index} className={styles.typeTag}>
-                      <Text text={type} />
-                    </div>
-                  ))}
-                </div>
+      <div className={styles.topSection}>
+        {/* Players Tiles - Left Upper Corner */}
+        <div className={styles.playersSection}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.icon}>👥</span>
+            Players <span className={styles.count}>({players.length})</span>
+          </h2>
+          <div className={styles.playersGrid}>
+            {players.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>No players yet</p>
+                <span className={styles.emptyIcon}>🎮</span>
               </div>
             ) : (
-              <div className={styles.ruleItem}>
-                <Text text="Game types not yet configured by host" />
-              </div>
+              players.map((player) => (
+                <div 
+                  key={player.id} 
+                  className={`${styles.playerTile} ${player.user_id === room.host_id ? styles.hostTile : ''}`}
+                >
+                  <div className={styles.playerAvatar}>
+                    {(player.game_name || player.username || 'P').charAt(0).toUpperCase()}
+                  </div>
+                  <div className={styles.playerInfo}>
+                    <p className={styles.playerName}>
+                      {player.game_name || player.username}
+                    </p>
+                    {player.user_id === room.host_id && (
+                      <span className={styles.hostBadge}>👑 Host</span>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
-          </>
-        ) : (
-          <div className={styles.ruleItem}>
-            <Text text="Game rules not yet configured by host" />
           </div>
-        )}
+        </div>
+
+        {/* Room Info - Right Corner */}
+        <div className={styles.roomInfoSection}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.icon}>🏠</span>
+            Room Info
+          </h2>
+          <div className={styles.roomInfoCard}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Room ID</span>
+              <span className={styles.infoValue}>{room.id}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Room Name</span>
+              <span className={styles.infoValue}>{room.name || 'Unnamed Room'}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Host</span>
+              <span className={styles.infoValue}>{room.host_game_name || room.host_username || 'Unknown'}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Total Players</span>
+              <span className={styles.infoValue}>{players.length}</span>
+            </div>
+          </div>
+
+          {gameSession && (
+            <div className={styles.gameRulesCard}>
+              <h3 className={styles.rulesTitle}>
+                <span className={styles.icon}>⚙️</span>
+                Game Rules
+              </h3>
+              <div className={styles.ruleItem}>
+                <span className={styles.ruleLabel}>Letter:</span>
+                <span className={styles.ruleValue}>
+                  {gameSession.final_letter || (gameSession.is_random_letter ? '🎲 Random' : 'Not set')}
+                </span>
+              </div>
+              {gameSession.selected_types && gameSession.selected_types.length > 0 && (
+                <div className={styles.ruleItem}>
+                  <span className={styles.ruleLabel}>Types:</span>
+                  <div className={styles.typesList}>
+                    {gameSession.selected_types_display?.map((type, index) => (
+                      <span key={index} className={styles.typeTag}>
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
+                <div className={styles.noRules}>
+                  <span className={styles.emptyIcon}>📝</span>
+                  <p>Game types not yet configured by host</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!gameSession && (
+            <div className={styles.gameRulesCard}>
+              <h3 className={styles.rulesTitle}>
+                <span className={styles.icon}>⚙️</span>
+                Game Rules
+              </h3>
+              <div className={styles.noRules}>
+                <span className={styles.emptyIcon}>📝</span>
+                <p>Game rules not yet configured by host</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className={styles.actions}>
-        <Button onButtonClick={handleLeaveRoom}>
-          Leave Room
+      {/* Action Buttons */}
+      <div className={styles.actionsSection}>
+        <Button 
+          onButtonClick={handleLeaveRoom}
+          variant="warning"
+          fullWidth
+        >
+          🚪 Leave Room
         </Button>
       </div>
     </div>
