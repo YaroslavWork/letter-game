@@ -10,6 +10,7 @@
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
+  margin: 0;
 }
 
 /* Animated background decorations */
@@ -56,7 +57,7 @@
 /* Form container */
 .form {
   width: 100%;
-  max-width: 420px;
+  max-width: 90%;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
@@ -74,6 +75,7 @@
   backdrop-filter: blur(20px);
   animation: slideUp 0.5s ease-out;
   margin: 0 auto;
+  flex-shrink: 0;
 }
 
 @keyframes slideUp {
@@ -100,98 +102,7 @@
   letter-spacing: -0.5px;
 }
 
-/* Input wrapper */
-.inputWrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-/* Input styling enhancement */
-.form .input-control {
-  width: 100%;
-  padding: var(--spacing-md);
-  font-size: var(--font-size-base);
-  border: 2px solid var(--border-muted);
-  border-radius: var(--border-radius-md);
-  background: var(--background-light);
-  color: var(--text);
-  transition: all 0.3s ease;
-  font-family: inherit;
-}
-
-.form .input-control:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(221, 49%, 33%, 0.1);
-  transform: translateY(-2px);
-}
-
-.form .input-control::placeholder {
-  color: var(--text-muted);
-  opacity: 0.6;
-}
-
-.form .input-control.input-error {
-  border-color: var(--danger);
-  animation: shake 0.3s ease;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-/* Button styling */
-.form .button {
-  width: 100%;
-  padding: var(--spacing-md) var(--spacing-xl);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--button-text);
-  background: var(--gradient-primary);
-  border: none;
-  border-radius: var(--border-radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: var(--spacing-sm);
-  position: relative;
-  overflow: hidden;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form .button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.form .button:hover::before {
-  left: 100%;
-}
-
-.form .button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(221, 49%, 33%, 0.3);
-}
-
-.form .button:active {
-  transform: translateY(0);
-}
-
-.form .button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
+/* Input and Button styles are now handled by component CSS */
 
 /* Register link */
 .registerLink {
@@ -257,6 +168,21 @@
   animation: float 12s infinite ease-in-out reverse;
 }
 
+/* Mobile specific - ensure perfect centering */
+@media (max-width: 767px) {
+  .loginPage {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+
+  .form {
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+  }
+}
+
 /* Tablet and up */
 @media (min-width: 768px) {
   .loginPage {
@@ -266,6 +192,7 @@
   .form {
     padding: var(--spacing-xxl);
     max-width: 480px;
+    width: 100%;
   }
 
   .form h1 {

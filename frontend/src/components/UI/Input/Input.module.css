@@ -1,0 +1,119 @@
+/* Playful Input Styles */
+.inputWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.input-control {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+  border: 2px solid var(--border-muted);
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  transition: all 0.3s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.input-control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.input-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 
+    0 0 0 3px rgba(221, 49%, 33%, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 1);
+}
+
+.input-control:focus::placeholder {
+  opacity: 0.4;
+}
+
+/* Error state */
+.input-control.input-error {
+  border-color: var(--danger);
+  background: rgba(255, 240, 240, 0.9);
+  animation: shake 0.3s ease;
+}
+
+.input-control.input-error:focus {
+  border-color: var(--danger);
+  box-shadow: 
+    0 0 0 3px rgba(9, 21%, 41%, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes shake {
+  0%, 100% { 
+    transform: translateX(0); 
+  }
+  25% { 
+    transform: translateX(-5px); 
+  }
+  75% { 
+    transform: translateX(5px); 
+  }
+}
+
+/* Error message */
+.input-error-message {
+  color: var(--danger);
+  font-size: var(--font-size-small);
+  margin-top: var(--spacing-xs);
+  display: block;
+  animation: fadeIn 0.3s ease;
+  font-weight: 500;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Success state (optional) */
+.input-control.input-success {
+  border-color: var(--success);
+  background: rgba(240, 255, 245, 0.9);
+}
+
+.input-control.input-success:focus {
+  border-color: var(--success);
+  box-shadow: 
+    0 0 0 3px rgba(147, 19%, 36%, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled state */
+.input-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(245, 245, 245, 0.9);
+}
+
+/* Size variants */
+.input-control.small {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-small);
+}
+
+.input-control.large {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  font-size: var(--font-size-large);
+}

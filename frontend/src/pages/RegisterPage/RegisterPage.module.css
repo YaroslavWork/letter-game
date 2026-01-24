@@ -1,37 +1,284 @@
+/* Mobile-first responsive design */
 .registerPage {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 2rem;
-  background-color: var(--background);
+  padding: var(--spacing-md);
+  background: var(--gradient-playful);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
 }
 
+/* Animated background decorations */
+.registerPage::before,
+.registerPage::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.1;
+  animation: float 20s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.registerPage::before {
+  width: 300px;
+  height: 300px;
+  background: var(--accent-purple);
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.registerPage::after {
+  width: 200px;
+  height: 200px;
+  background: var(--accent-orange);
+  bottom: -50px;
+  right: -50px;
+  animation-delay: 5s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* Form container */
 .form {
   width: 100%;
-  max-width: 400px;
+  max-width: 90%;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 2rem;
-  background-color: var(--background-light);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg);
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, 
+    rgba(240, 248, 255, 0.98) 0%, 
+    rgba(250, 240, 255, 0.95) 50%,
+    rgba(255, 245, 240, 0.98) 100%);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(20px);
+  animation: slideUp 0.5s ease-out;
+  margin: 0 auto;
+  max-height: 95vh;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
-.loginLink {
-  margin-top: 1rem;
+/* Custom scrollbar for form */
+.form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-sm);
+}
+
+.form::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: var(--border-radius-sm);
+  opacity: 0.5;
+}
+
+.form::-webkit-scrollbar-thumb:hover {
+  opacity: 0.7;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header styling */
+.form h1 {
   text-align: center;
+  font-size: var(--font-size-xxlarge);
+  font-weight: 700;
+  background: var(--gradient-playful);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.5px;
+}
+
+/* Input and Button styles are now handled by component CSS */
+
+/* Login link */
+.loginLink {
+  margin-top: var(--spacing-md);
+  text-align: center;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-muted);
 }
 
 .loginLink a {
   color: var(--primary);
   text-decoration: none;
   font-size: var(--font-size-small);
-  transition: color 0.2s;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+}
+
+.loginLink a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-playful);
+  transition: width 0.3s ease;
 }
 
 .loginLink a:hover {
   color: var(--hover-primary);
-  text-decoration: underline;
+}
+
+.loginLink a:hover::after {
+  width: 100%;
+}
+
+/* Decorative elements */
+.decorativeCircle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.decorativeCircle1 {
+  width: 150px;
+  height: 150px;
+  background: var(--accent-purple);
+  top: 10%;
+  right: 5%;
+  animation: float 15s infinite ease-in-out;
+}
+
+.decorativeCircle2 {
+  width: 100px;
+  height: 100px;
+  background: var(--accent-orange);
+  bottom: 15%;
+  left: 8%;
+  animation: float 12s infinite ease-in-out reverse;
+}
+
+.decorativeCircle3 {
+  width: 80px;
+  height: 80px;
+  background: var(--accent-pink);
+  top: 50%;
+  left: 3%;
+  animation: float 18s infinite ease-in-out;
+  animation-delay: 3s;
+}
+
+/* Mobile specific - ensure perfect centering */
+@media (max-width: 767px) {
+  .registerPage {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+
+  .form {
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* Tablet and up */
+@media (min-width: 768px) {
+  .registerPage {
+    padding: var(--spacing-xl);
+  }
+
+  .form {
+    padding: var(--spacing-xxl);
+    max-width: 500px;
+    gap: var(--spacing-lg);
+    max-height: 90vh;
+    width: 100%;
+  }
+
+  .form h1 {
+    font-size: 2.5rem;
+  }
+
+  .registerPage::before {
+    width: 400px;
+    height: 400px;
+  }
+
+  .registerPage::after {
+    width: 300px;
+    height: 300px;
+  }
+
+  .decorativeCircle3 {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+/* Desktop and up */
+@media (min-width: 1024px) {
+  .form {
+    max-width: 540px;
+    padding: 3rem;
+  }
+
+  .form h1 {
+    font-size: 3rem;
+  }
+
+  .decorativeCircle1 {
+    width: 200px;
+    height: 200px;
+  }
+
+  .decorativeCircle2 {
+    width: 150px;
+    height: 150px;
+  }
+
+  .decorativeCircle3 {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+  .form {
+    max-width: 580px;
+  }
 }

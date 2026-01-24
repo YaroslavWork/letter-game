@@ -121,8 +121,11 @@ export default function RegisterPage() {
 
   return (
     <div className={styles.registerPage}>
+      <div className={styles.decorativeCircle1}></div>
+      <div className={styles.decorativeCircle2}></div>
+      <div className={styles.decorativeCircle3}></div>
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
-        <Header text={"Create Account"} />
+        <Header text={"Join the Fun! 🎯"} />
 
         <Input 
           type="text" 
@@ -132,6 +135,7 @@ export default function RegisterPage() {
           placeholder="Username" 
           error={errors.username} 
         />
+
         <Input 
           type="text" 
           name="game_name" 
@@ -140,6 +144,7 @@ export default function RegisterPage() {
           placeholder="Game Name" 
           error={errors.game_name} 
         />
+
         <Input 
           type="email" 
           name="email" 
@@ -148,6 +153,7 @@ export default function RegisterPage() {
           placeholder="Email" 
           error={errors.email} 
         />
+
         <Input 
           type="password" 
           name="password" 
@@ -156,6 +162,7 @@ export default function RegisterPage() {
           placeholder="Password" 
           error={errors.password} 
         />
+
         <Input 
           type="password" 
           name="repeatPassword" 
@@ -164,10 +171,14 @@ export default function RegisterPage() {
           placeholder="Repeat Password" 
           error={errors.repeatPassword} 
         />
-      
 
-        <Button type="submit" disabled={isPending}>
-          {isPending ? 'Registering...' : 'Register'}
+        <Button 
+          type="submit" 
+          disabled={isPending}
+          variant="playful"
+          fullWidth
+        >
+          {isPending ? 'Registering...' : 'Create Account'}
         </Button>
 
         <div className={styles.loginLink}>

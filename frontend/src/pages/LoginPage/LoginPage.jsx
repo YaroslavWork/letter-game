@@ -115,29 +115,30 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} noValidate className={styles.form} action="#" method="post">
         <Header text={"Welcome Back! 🎮"} />
 
-        <div className={styles.inputWrapper}>
-          <Input 
-            type="text" 
-            name="username" 
-            value={formData.username} 
-            onChange={handleChange} 
-            placeholder="Username or Email"
-            error={errors.username} 
-          />
-        </div>
+        <Input 
+          type="text" 
+          name="username" 
+          value={formData.username} 
+          onChange={handleChange} 
+          placeholder="Username or Email"
+          error={errors.username} 
+        />
 
-        <div className={styles.inputWrapper}>
-          <Input 
-            type="password" 
-            name="password" 
-            value={formData.password} 
-            onChange={handleChange} 
-            placeholder="Password"
-            error={errors.password} 
-          />
-        </div>
+        <Input 
+          type="password" 
+          name="password" 
+          value={formData.password} 
+          onChange={handleChange} 
+          placeholder="Password"
+          error={errors.password} 
+        />
 
-        <Button type="submit" disabled={isPending}>
+        <Button 
+          type="submit" 
+          disabled={isPending}
+          variant="playful"
+          fullWidth
+        >
           {isPending ? 'Logging in...' : 'Login'}
         </Button>
 
