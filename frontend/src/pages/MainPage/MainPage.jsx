@@ -8,6 +8,9 @@ import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
 import Header from '../../components/UI/Header/Header';
+import UserProfile from '../../components/UI/UserProfile/UserProfile';
+import MenuBar from '../../components/UI/MenuBar/MenuBar';
+import ReconnectNotification from '../../components/UI/ReconnectNotification/ReconnectNotification';
 import styles from './MainPage.module.css'
 
 export default function MainPage () {
@@ -158,6 +161,23 @@ export default function MainPage () {
         }, 5000);
     };
 
+    const handleLogout = () => {
+        logout();
+        // Clear room info on logout
+        localStorage.removeItem('room_id');
+        localStorage.removeItem('room_type');
+        wsClient.disconnect();
+        navigate('/login');
+    };
+
+    const handleHostClick = () => {
+        // Clear any stored room info to ensure we create a new room, not reconnect
+        localStorage.removeItem('room_id');
+        localStorage.removeItem('room_type');
+        setHasStoredRoom(false);
+        navigate('/host');
+    };
+
     if (isLoading) {
         return (
             <div className={styles.mainPage}>
@@ -172,52 +192,36 @@ export default function MainPage () {
 
     return (
         <div className={styles.mainPage}>
-            <Header text="Letter Game" />
+            <div className={styles.decorativeCircle1}></div>
+            <div className={styles.decorativeCircle2}></div>
             
-            {user && (
-                <div className={styles.userInfo}>
-                    <Text text={`Game Name: ${user.game_name || 'N/A'}`} />
-                    <Text text={`Email: ${user.email || 'N/A'}`} />
-                </div>
-            )}
-            
-            {hasStoredRoom && (
-                <div className={styles.reconnectSection}>
-                    <Text text="You have an active room session" />
-                    <Button 
-                        onButtonClick={handleReconnect}
-                        disabled={isReconnecting}
-                    >
-                        {isReconnecting ? 'Reconnecting...' : 'Reconnect to Room'}
-                    </Button>
-                </div>
-            )}
-            
-            <div className={styles.gameActions}>
-                <Button onButtonClick={() => {
-                    // Clear any stored room info to ensure we create a new room, not reconnect
-                    localStorage.removeItem('room_id');
-                    localStorage.removeItem('room_type');
-                    setHasStoredRoom(false);
-                    navigate('/host');
-                }}>
-                    Host Game
-                </Button>
-                <Button onButtonClick={() => navigate('/join')}>
-                    Join Game
-                </Button>
+            <div className={styles.titleSection}>
+                <Header text="Letter Game 🎮" />
             </div>
-            
-            <Button onButtonClick={() => {
-                logout();
-                // Clear room info on logout
-                localStorage.removeItem('room_id');
-                localStorage.removeItem('room_type');
-                wsClient.disconnect();
-                navigate('/login');
-            }}>
-                Logout
-            </Button>
+
+            <div className={styles.contentContainer}>
+                <UserProfile 
+                    user={user} 
+                    onLogout={handleLogout}
+                />
+                
+                <MenuBar 
+                    onHostClick={handleHostClick}
+                    onJoinClick={() => navigate('/join')}
+                />
+            </div>
+
+            {hasStoredRoom && (
+                <ReconnectNotification
+                    onReconnect={handleReconnect}
+                    onClose={() => {
+                        setHasStoredRoom(false);
+                        localStorage.removeItem('room_id');
+                        localStorage.removeItem('room_type');
+                    }}
+                    isReconnecting={isReconnecting}
+                />
+            )}
         </div>
     )
 }

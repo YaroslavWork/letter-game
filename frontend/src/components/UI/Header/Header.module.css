@@ -1,0 +1,40 @@
+.header {
+  text-align: center;
+  font-size: var(--font-size-xxlarge);
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: -0.5px;
+  animation: fadeIn 0.5s ease-out;
+  text-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    0 0 30px rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .header {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .header {
+    font-size: 3rem;
+  }
+}
