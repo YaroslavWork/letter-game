@@ -22,6 +22,7 @@ export default function GameSessionPage() {
   const [showResults, setShowResults] = useState(false);
   const [previousRoundScores, setPreviousRoundScores] = useState(null);
   const [previousRoundNumber, setPreviousRoundNumber] = useState(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(null);
   const lastWebSocketUpdateRef = useRef(null);
 
   const submitAnswerMutation = useMutationSubmitAnswer();
@@ -329,6 +330,39 @@ export default function GameSessionPage() {
     }
   }, [gameSession?.is_completed, refetchScores]);
 
+  // Calculate and update timer
+  useEffect(() => {
+    if (!gameSession || gameSession.is_completed || !gameSession.round_start_time) {
+      setRemainingSeconds(null);
+      return;
+    }
+
+    const calculateRemainingTime = () => {
+      const startTime = new Date(gameSession.round_start_time);
+      const now = new Date();
+      const elapsedSeconds = Math.floor((now - startTime) / 1000);
+      const timerSeconds = gameSession.round_timer_seconds || 60;
+      const remaining = Math.max(0, timerSeconds - elapsedSeconds);
+      return remaining;
+    };
+
+    // Calculate initial remaining time
+    setRemainingSeconds(calculateRemainingTime());
+
+    // Update timer every second
+    const interval = setInterval(() => {
+      const remaining = calculateRemainingTime();
+      setRemainingSeconds(remaining);
+      
+      // If timer reaches 0, stop updating
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameSession?.round_start_time, gameSession?.round_timer_seconds, gameSession?.current_round, gameSession?.is_completed]);
+
   if (isLoadingRoom || !room) {
     return (
       <div className={styles.gameSessionPage}>
@@ -572,6 +606,11 @@ export default function GameSessionPage() {
             {gameSession && gameSession.total_rounds > 1 && (
               <div className={styles.roundInfo}>
                 <Header text={`Round ${gameSession.current_round} of ${gameSession.total_rounds}`} />
+              </div>
+            )}
+            {remainingSeconds !== null && gameSession && !gameSession.is_completed && (
+              <div className={styles.timerDisplay}>
+                <Header text={`Time Remaining: ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`} />
               </div>
             )}
             <div className={styles.letterDisplay}>

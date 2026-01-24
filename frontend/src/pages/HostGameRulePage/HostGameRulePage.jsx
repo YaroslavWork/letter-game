@@ -19,6 +19,7 @@ export default function HostGameRulePage() {
   const [isRandomLetter, setIsRandomLetter] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [totalRounds, setTotalRounds] = useState(1);
+  const [roundTimerSeconds, setRoundTimerSeconds] = useState(60);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -42,6 +43,7 @@ export default function HostGameRulePage() {
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
         setTotalRounds(session.total_rounds || 1);
+        setRoundTimerSeconds(session.round_timer_seconds || 60);
       }
       // Do NOT navigate - stay on the configuration page
     } else if (data.type === 'room_deleted_notification') {
@@ -79,6 +81,7 @@ export default function HostGameRulePage() {
         setIsRandomLetter(session.is_random_letter);
         setSelectedTypes(session.selected_types || []);
         setTotalRounds(session.total_rounds || 1);
+        setRoundTimerSeconds(session.round_timer_seconds || 60);
       }
     }
   }, [gameSessionData]);
@@ -170,10 +173,16 @@ export default function HostGameRulePage() {
       return;
     }
 
+    if (roundTimerSeconds < 10 || roundTimerSeconds > 600) {
+      setError('Timer duration must be between 10 and 600 seconds');
+      return;
+    }
+
     const updateData = {
       is_random_letter: totalRounds > 1 ? true : isRandomLetter,
       selected_types: selectedTypes,
       total_rounds: totalRounds,
+      round_timer_seconds: roundTimerSeconds,
     };
 
     if (totalRounds === 1 && !isRandomLetter && letter) {
@@ -191,6 +200,7 @@ export default function HostGameRulePage() {
             setIsRandomLetter(sessionData.is_random_letter);
             setSelectedTypes(sessionData.selected_types || []);
             setTotalRounds(sessionData.total_rounds || 1);
+            setRoundTimerSeconds(sessionData.round_timer_seconds || 60);
           }
           
           // Invalidate and refetch queries to ensure UI is up to date
@@ -257,6 +267,27 @@ export default function HostGameRulePage() {
             style={{ width: '100px', textAlign: 'center' }}
           />
           <Text text="(Each round will use a random letter)" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <Header text="Round Timer" />
+        <div className={styles.roundsSection}>
+          <Text text="Timer duration per round (in seconds):" />
+          <Input
+            type="number"
+            value={roundTimerSeconds}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 60;
+              if (value >= 10 && value <= 600) {
+                setRoundTimerSeconds(value);
+              }
+            }}
+            min="10"
+            max="600"
+            style={{ width: '100px', textAlign: 'center' }}
+          />
+          <Text text={`(${Math.floor(roundTimerSeconds / 60)} minutes ${roundTimerSeconds % 60} seconds)`} />
         </div>
       </div>
 

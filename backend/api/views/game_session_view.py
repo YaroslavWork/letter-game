@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 import random
 import string
 from ..models import Room, GameSession, RoomPlayer, PlayerAnswer, GAME_TYPE_CHOICES
@@ -131,6 +132,9 @@ class StartGameSessionView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             game_session.round_letters = [game_session.letter]
+        
+        # Set round start time for timer
+        game_session.round_start_time = timezone.now()
         
         game_session.save()
         
@@ -439,6 +443,8 @@ class AdvanceRoundView(APIView):
             round_letter = random.choice(common_letters)
             game_session.letter = round_letter
             game_session.round_letters.append(round_letter)
+            # Set round start time for timer
+            game_session.round_start_time = timezone.now()
             game_session.save()
             
             # Broadcast room update

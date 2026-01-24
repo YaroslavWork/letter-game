@@ -63,6 +63,8 @@ class GameSession(models.Model):
     is_completed = models.BooleanField(default=False, help_text="Whether all rounds are completed")
     round_letters = models.JSONField(default=list, help_text="List of letters used for each round")
     round_advance_scheduled = models.BooleanField(default=False, help_text="Whether round advancement is already scheduled")
+    round_timer_seconds = models.IntegerField(default=60, help_text="Timer duration in seconds for each round")
+    round_start_time = models.DateTimeField(null=True, blank=True, help_text="Timestamp when the current round started")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

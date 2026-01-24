@@ -10,8 +10,9 @@ class GameSessionSerializer(serializers.ModelSerializer):
         model = GameSession
         fields = ('id', 'letter', 'is_random_letter', 'selected_types', 
                   'selected_types_display', 'final_letter', 'total_rounds', 
-                  'current_round', 'is_completed', 'round_letters', 'round_advance_scheduled', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'created_at', 'updated_at')
+                  'current_round', 'is_completed', 'round_letters', 'round_advance_scheduled', 
+                  'round_timer_seconds', 'round_start_time', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at', 'round_start_time')
     
     def get_selected_types_display(self, obj):
         """Returns list of display names for selected types."""
@@ -56,7 +57,7 @@ class UpdateGameSessionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = GameSession
-        fields = ('letter', 'is_random_letter', 'selected_types', 'total_rounds')
+        fields = ('letter', 'is_random_letter', 'selected_types', 'total_rounds', 'round_timer_seconds')
     
     def validate_letter(self, value):
         """Validate that letter is a single uppercase letter."""
@@ -79,4 +80,12 @@ class UpdateGameSessionSerializer(serializers.ModelSerializer):
         for type_key in value:
             if type_key not in valid_types:
                 raise serializers.ValidationError(f"Invalid game type: {type_key}")
+        return value
+    
+    def validate_round_timer_seconds(self, value):
+        """Validate that timer duration is between 10 and 600 seconds."""
+        if value < 10:
+            raise serializers.ValidationError("Timer duration must be at least 10 seconds.")
+        if value > 600:
+            raise serializers.ValidationError("Timer duration must be at most 600 seconds (10 minutes).")
         return value
