@@ -24,6 +24,7 @@ export default function GameSessionPage() {
   const [previousRoundNumber, setPreviousRoundNumber] = useState(null);
   const [remainingSeconds, setRemainingSeconds] = useState(null);
   const lastWebSocketUpdateRef = useRef(null);
+  const autoSubmittedRef = useRef(false);
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const advanceRoundMutation = useMutationAdvanceRound();
@@ -63,6 +64,8 @@ export default function GameSessionPage() {
             setAnswers({});
             setValidationErrors({});
             setSubmittedPlayers(new Set());
+            // Reset auto-submit flag for new round
+            autoSubmittedRef.current = false;
             // Don't reset showResults here - keep it true so results remain visible
             // It will be reset when user starts submitting for the new round
             // Don't refetch scores immediately - keep showing previous round's results
@@ -314,6 +317,8 @@ export default function GameSessionPage() {
         setAnswers({});
         setValidationErrors({});
         setSubmittedPlayers(new Set());
+        // Reset auto-submit flag for new round
+        autoSubmittedRef.current = false;
         // Don't reset showResults here - keep it true so results remain visible
         // It will be reset when user starts submitting for the new round
         // Don't refetch scores immediately - keep showing previous round's results
@@ -330,12 +335,53 @@ export default function GameSessionPage() {
     }
   }, [gameSession?.is_completed, refetchScores]);
 
+  // Auto-submit function - submits answers when timer reaches 0
+  const handleAutoSubmit = useCallback(() => {
+    if (!roomId || !gameSession || isSubmitted || autoSubmittedRef.current) {
+      return;
+    }
+
+    // Mark as auto-submitted to prevent multiple calls
+    autoSubmittedRef.current = true;
+
+    // Prepare answers - submit whatever is filled, empty strings for unfilled
+    const answersToSubmit = {};
+    gameSession.selected_types.forEach(type => {
+      answersToSubmit[type] = answers[type] || '';
+    });
+
+    submitAnswerMutation.mutate(
+      { roomId, data: { answers: answersToSubmit } },
+      {
+        onSuccess: () => {
+          setIsSubmitted(true);
+          refetchScores();
+          // Show notification that auto-submit happened
+          alert('Time is up! Your answers have been automatically submitted.');
+        },
+        onError: (error) => {
+          // Reset auto-submitted flag on error so user can try again
+          autoSubmittedRef.current = false;
+          const errorMessage = error.response?.data?.error || 
+                             error.response?.data?.detail ||
+                             'Failed to auto-submit answers. Please submit manually.';
+          alert(errorMessage);
+        }
+      }
+    );
+  }, [roomId, gameSession, isSubmitted, answers, submitAnswerMutation, refetchScores]);
+
   // Calculate and update timer
   useEffect(() => {
     if (!gameSession || gameSession.is_completed || !gameSession.round_start_time) {
       setRemainingSeconds(null);
+      // Reset auto-submit flag when timer is not active
+      autoSubmittedRef.current = false;
       return;
     }
+
+    // Reset auto-submit flag when round changes
+    autoSubmittedRef.current = false;
 
     const calculateRemainingTime = () => {
       const startTime = new Date(gameSession.round_start_time);
@@ -354,14 +400,18 @@ export default function GameSessionPage() {
       const remaining = calculateRemainingTime();
       setRemainingSeconds(remaining);
       
-      // If timer reaches 0, stop updating
+      // If timer reaches 0, auto-submit and stop updating
       if (remaining <= 0) {
         clearInterval(interval);
+        // Auto-submit if not already submitted
+        if (!isSubmitted && !autoSubmittedRef.current) {
+          handleAutoSubmit();
+        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameSession?.round_start_time, gameSession?.round_timer_seconds, gameSession?.current_round, gameSession?.is_completed]);
+  }, [gameSession?.round_start_time, gameSession?.round_timer_seconds, gameSession?.current_round, gameSession?.is_completed, isSubmitted, handleAutoSubmit]);
 
   if (isLoadingRoom || !room) {
     return (
