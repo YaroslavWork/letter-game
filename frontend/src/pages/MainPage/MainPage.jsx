@@ -192,7 +192,13 @@ export default function MainPage () {
             )}
             
             <div className={styles.gameActions}>
-                <Button onButtonClick={() => navigate('/host')}>
+                <Button onButtonClick={() => {
+                    // Clear any stored room info to ensure we create a new room, not reconnect
+                    localStorage.removeItem('room_id');
+                    localStorage.removeItem('room_type');
+                    setHasStoredRoom(false);
+                    navigate('/host');
+                }}>
                     Host Game
                 </Button>
                 <Button onButtonClick={() => navigate('/join')}>
