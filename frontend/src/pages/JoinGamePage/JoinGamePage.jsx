@@ -433,6 +433,14 @@ export default function JoinGamePage() {
                   {gameSession.final_letter || (gameSession.is_random_letter ? '🎲 Random' : 'Not set')}
                 </span>
               </div>
+              {gameSession.total_rounds && (
+                <div className={styles.ruleItem}>
+                  <span className={styles.ruleLabel}>Rounds:</span>
+                  <span className={styles.ruleValue}>
+                    {gameSession.total_rounds} {gameSession.total_rounds === 1 ? 'round' : 'rounds'}
+                  </span>
+                </div>
+              )}
               {gameSession.selected_types && gameSession.selected_types.length > 0 && (
                 <div className={styles.ruleItem}>
                   <span className={styles.ruleLabel}>Types:</span>
