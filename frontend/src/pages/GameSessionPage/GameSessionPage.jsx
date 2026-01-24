@@ -34,8 +34,8 @@ export default function GameSessionPage() {
   const includeTotals = gameSession?.is_completed || false;
   const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId, includeTotals);
 
-  const { data: existingRoomData, isLoading: isLoadingRoom } = useRoom(roomId);
-  const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession } = useGameSession(roomId);
+  const { data: existingRoomData, isLoading: isLoadingRoom, error: roomError } = useRoom(roomId);
+  const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession, error: gameSessionError } = useGameSession(roomId);
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
@@ -138,6 +138,24 @@ export default function GameSessionPage() {
       return;
     }
 
+    // Handle room not found or invalid UUID errors
+    if (roomError && !isLoadingRoom) {
+      const errorStatus = roomError.response?.status;
+      const errorData = roomError.response?.data;
+      
+      if (errorStatus === 404) {
+        showError('Room not found. The room may have been deleted or the room ID is invalid.');
+        navigate('/');
+      } else if (errorStatus === 400) {
+        const errorMessage = errorData?.room_id?.[0] || 
+                           errorData?.error || 
+                           errorData?.detail ||
+                           'Invalid room ID format.';
+        showError(errorMessage);
+        navigate('/');
+      }
+    }
+
     const storedGameSession = localStorage.getItem('game_session');
     if (storedGameSession) {
       try {
@@ -229,7 +247,7 @@ export default function GameSessionPage() {
         }
       }
     }
-  }, [isAuthenticated, navigate, roomId, existingRoomData, room, gameSessionData]);
+  }, [isAuthenticated, navigate, roomId, existingRoomData, room, gameSessionData, roomError, isLoadingRoom, showError]);
 
   useEffect(() => {
     if (roomId && room && !gameSession && !isLoadingGameSession) {

@@ -178,7 +178,7 @@ export default function JoinGamePage() {
     setError('');
 
     if (!roomId.trim()) {
-      setError('Please enter a room ID');
+      showWarning('Please enter a room ID');
       return;
     }
 
@@ -225,15 +225,54 @@ export default function JoinGamePage() {
             }
           }, 100);
         } else {
-          setError('Failed to join room. Invalid response.');
+          const errorMsg = 'Failed to join room. Invalid response.';
+          setError(errorMsg);
+          showError(errorMsg);
         }
       },
       onError: (error) => {
-        const errorMessage = error.response?.data?.room_id?.[0] || 
-                           error.response?.data?.error || 
-                           error.response?.data?.detail ||
-                           'Failed to join room. Please check the room ID.';
+        const errorData = error.response?.data;
+        let errorMessage = '';
+        let isUuidError = false;
+
+        // Check for UUID validation errors
+        if (errorData?.room_id) {
+          const roomIdError = Array.isArray(errorData.room_id) 
+            ? errorData.room_id[0] 
+            : errorData.room_id;
+          
+          // Check if it's a UUID format error
+          if (typeof roomIdError === 'string') {
+            const lowerError = roomIdError.toLowerCase();
+            if (lowerError.includes('invalid') || 
+                lowerError.includes('uuid') || 
+                lowerError.includes('format') ||
+                lowerError.includes('not a valid')) {
+              isUuidError = true;
+              errorMessage = 'Invalid room ID format. Please enter a valid UUID.';
+            } else {
+              errorMessage = roomIdError;
+            }
+          } else {
+            errorMessage = roomIdError;
+          }
+        } else if (errorData?.error) {
+          errorMessage = errorData.error;
+        } else if (errorData?.detail) {
+          errorMessage = errorData.detail;
+        } else {
+          errorMessage = 'Failed to join room. Please check the room ID.';
+        }
+
+        // Set error in input field for form validation
         setError(errorMessage);
+        
+        // Show notification for UUID errors and other API errors
+        if (isUuidError || error.response?.status === 400 || error.response?.status === 404) {
+          showError(errorMessage);
+        } else if (error.response?.status >= 500) {
+          showError('Server error. Please try again later.');
+        }
       }
     });
   };
@@ -282,7 +321,6 @@ export default function JoinGamePage() {
               setError('');
             }}
             placeholder="Enter Room ID"
-            error={error}
           />
           
           <Button type="submit" disabled={joinRoomMutation.isPending}>

@@ -15,7 +15,7 @@ export default function HostGameRulePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
-  const { success: showSuccess, error: showError } = useNotification();
+  const { success: showSuccess, error: showError, warning: showWarning } = useNotification();
   const { roomId } = useParams();
   const [letter, setLetter] = useState('');
   const [isRandomLetter, setIsRandomLetter] = useState(true);
@@ -24,7 +24,7 @@ export default function HostGameRulePage() {
   const [roundTimerSeconds, setRoundTimerSeconds] = useState(60);
   const [error, setError] = useState('');
 
-  const { data: roomData, isLoading: isLoadingRoom } = useRoom(roomId);
+  const { data: roomData, isLoading: isLoadingRoom, error: roomError } = useRoom(roomId);
   const { data: gameTypesData, isLoading: isLoadingTypes } = useGameTypes();
   const { data: gameSessionData, isLoading: isLoadingSession, refetch: refetchGameSession } = useGameSession(roomId);
   const updateGameSessionMutation = useMutationUpdateGameSession();
@@ -93,6 +93,26 @@ export default function HostGameRulePage() {
       return;
     }
 
+    // Handle room not found or invalid UUID errors
+    if (roomError && !isLoadingRoom) {
+      const errorStatus = roomError.response?.status;
+      const errorData = roomError.response?.data;
+      
+      if (errorStatus === 404) {
+        showError('Room not found. The room may have been deleted or the room ID is invalid.');
+        navigate('/');
+        return;
+      } else if (errorStatus === 400) {
+        const errorMessage = errorData?.room_id?.[0] || 
+                           errorData?.error || 
+                           errorData?.detail ||
+                           'Invalid room ID format.';
+        showError(errorMessage);
+        navigate('/');
+        return;
+      }
+    }
+
     // Check if user is host
     if (roomData && !isLoadingRoom) {
       const room = roomData?.data || roomData;
@@ -115,7 +135,7 @@ export default function HostGameRulePage() {
         }
       }
     }
-  }, [isAuthenticated, navigate, roomData, isLoadingRoom, user]);
+  }, [isAuthenticated, navigate, roomData, isLoadingRoom, user, roomError, showError]);
 
   const handleLetterChange = (e) => {
     const value = e.target.value.toUpperCase().trim();
@@ -158,13 +178,15 @@ export default function HostGameRulePage() {
     } else {
       // Single round: validate letter
       if (!isRandomLetter && !letter) {
-        setError('Please enter a letter or select random letter');
+        showWarning('Please enter a letter or select random letter');
+        setError('');
         return;
       }
     }
 
     if (selectedTypes.length === 0) {
-      setError('Please select at least one game type');
+      showWarning('Please select at least one game type');
+      setError('');
       return;
     }
 
