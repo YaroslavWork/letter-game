@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useMutationLoginData } from '../../features/hooks/index.hooks';
+import { useNotification } from '../../contexts/NotificationContext';
 import { Input } from '../../components/UI/Input/Input';
 import Button from '../../components/UI/Button/Button';
 import Header from '../../components/UI/Header/Header';
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading } = useAuth();
+  const { error: showError } = useNotification();
   const { mutate, isPending, isError, error: apiError } = useMutationLoginData();
 
   useEffect(() => {
@@ -64,10 +66,7 @@ export default function LoginPage() {
             const responseData = response?.data || response;
             
             if (!responseData || !responseData.access || !responseData.refresh) {
-              setErrors({ 
-                password: 'Invalid response from server',
-                username: 'Invalid response from server'
-              });
+              showError('Invalid response from server. Please try again.');
               return;
             }
 
@@ -76,10 +75,7 @@ export default function LoginPage() {
             
             navigate('/');
           } catch (error) {
-            setErrors({ 
-              password: 'Error processing login response',
-              username: 'Error processing login response'
-            });
+            showError('Error processing login response. Please try again.');
           }
         },
         onError: (error) => {
@@ -95,10 +91,15 @@ export default function LoginPage() {
               password: errorData?.password?.[0] || 'Invalid password'
             });
           } else {
+            const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Login failed. Please try again.';
             setErrors({
-              username: error.response?.data?.detail || error.response?.data?.message || 'Login failed. Please try again.',
-              password: error.response?.data?.detail || error.response?.data?.message || 'Login failed. Please try again.'
+              username: errorMessage,
+              password: errorMessage
             });
+            // Also show notification for non-field-specific errors
+            if (!error.response?.data?.username && !error.response?.data?.password) {
+              showError(errorMessage);
+            }
           }
         }
       })
@@ -129,11 +130,6 @@ export default function LoginPage() {
           error={errors.password} 
         />
       
-        {isError && !errors.username && !errors.password && (
-          <div className="api-error">
-            {apiError?.response?.data?.detail || apiError?.response?.data?.message || apiError.message || 'Failed to login'}
-          </div>
-        )}
 
         <Button type="submit" disabled={isPending}>
           {isPending ? 'Logging in...' : 'Login'}

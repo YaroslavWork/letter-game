@@ -226,7 +226,7 @@ export default function JoinGamePage() {
           }, 100);
         } else {
           const errorMsg = 'Failed to join room. Invalid response.';
-          setError(errorMsg);
+          setError('');
           showError(errorMsg);
         }
       },
@@ -264,14 +264,17 @@ export default function JoinGamePage() {
           errorMessage = 'Failed to join room. Please check the room ID.';
         }
 
-        // Set error in input field for form validation
-        setError(errorMessage);
+        // Clear error state (no longer using input field errors)
+        setError('');
         
         // Show notification for UUID errors and other API errors
         if (isUuidError || error.response?.status === 400 || error.response?.status === 404) {
           showError(errorMessage);
         } else if (error.response?.status >= 500) {
           showError('Server error. Please try again later.');
+        } else {
+          // Show error for any other status codes
+          showError(errorMessage);
         }
       }
     });

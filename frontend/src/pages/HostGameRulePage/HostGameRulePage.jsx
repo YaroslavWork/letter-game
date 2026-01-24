@@ -191,12 +191,14 @@ export default function HostGameRulePage() {
     }
 
     if (totalRounds < 1 || totalRounds > 10) {
-      setError('Number of rounds must be between 1 and 10');
+      showWarning('Number of rounds must be between 1 and 10');
+      setError('');
       return;
     }
 
     if (roundTimerSeconds < 10 || roundTimerSeconds > 600) {
-      setError('Timer duration must be between 10 and 600 seconds');
+      showWarning('Timer duration must be between 10 and 600 seconds');
+      setError('');
       return;
     }
 
@@ -238,7 +240,7 @@ export default function HostGameRulePage() {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              'Failed to update game rules. Please try again.';
-          setError(errorMessage);
+          setError('');
           showError(errorMessage);
         }
       }

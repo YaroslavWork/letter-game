@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState(initialState);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
-  const { success: showSuccess } = useNotification();
+  const { success: showSuccess, error: showError } = useNotification();
 
   const { mutate, isPending, isError, error: apiError } = useMutationRegisterData();
 
@@ -107,6 +107,10 @@ export default function RegisterPage() {
           } else {
             const errorMessage = errorData?.detail || errorData?.message || error.message || 'Registration failed. Please try again.';
             newErrors.username = errorMessage;
+            // Show notification for non-field-specific errors
+            if (!errorData?.username && !errorData?.email && !errorData?.password && !errorData?.non_field_errors) {
+              showError(errorMessage);
+            }
           }
           
           setErrors(newErrors);
@@ -161,17 +165,6 @@ export default function RegisterPage() {
           error={errors.repeatPassword} 
         />
       
-        {isError && (
-          <div className="api-error">
-            {apiError?.response?.data?.username?.[0] || 
-             apiError?.response?.data?.email?.[0] || 
-             apiError?.response?.data?.password?.[0] ||
-             apiError?.response?.data?.non_field_errors?.[0] ||
-             apiError?.response?.data?.message || 
-             apiError?.message || 
-             'Failed to register. Please check your information.'}
-          </div>
-        )}
 
         <Button type="submit" disabled={isPending}>
           {isPending ? 'Registering...' : 'Register'}

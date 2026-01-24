@@ -187,7 +187,8 @@ export default function HostGamePage() {
     }
 
     if (roomName.trim().length > 100) {
-      setRoomNameError('Room name must be 100 characters or less');
+      showWarning('Room name must be 100 characters or less');
+      setRoomNameError('');
       return;
     }
 
