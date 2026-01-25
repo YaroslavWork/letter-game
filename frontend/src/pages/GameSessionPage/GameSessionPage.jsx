@@ -30,9 +30,8 @@ export default function GameSessionPage() {
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const advanceRoundMutation = useMutationAdvanceRound();
-  // Include totals when game is completed
-  const includeTotals = gameSession?.is_completed || false;
-  const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId, includeTotals);
+  // Always include totals to show round/total format
+  const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId, true);
 
   const { data: existingRoomData, isLoading: isLoadingRoom, error: roomError } = useRoom(roomId);
   const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession, error: gameSessionError } = useGameSession(roomId);
@@ -606,8 +605,34 @@ export default function GameSessionPage() {
     return playerAnswer.points;
   };
 
+  const getPlayerTotalPointsAllRounds = (playerId) => {
+    const scoresResponse = playerScoresData?.data || playerScoresData || {};
+    const apiTotalScores = scoresResponse?.total_scores || {};
+    // If total_scores exists in response (even if empty), use it
+    if (scoresResponse?.total_scores !== undefined) {
+      return apiTotalScores[playerId] || 0;
+    }
+    // If total_scores not in response (API didn't include it), calculate from round points
+    // This handles first round before any submissions
+    const roundPoints = getPlayerTotalPoints(playerId);
+    return roundPoints !== null ? roundPoints : 0;
+  };
+
+  const formatPointsDisplay = (roundPoints, playerId) => {
+    const totalPoints = getPlayerTotalPointsAllRounds(playerId);
+    // If round points are null/undefined, show 0 for current round
+    const currentRoundPoints = roundPoints !== null && roundPoints !== undefined ? roundPoints : 0;
+    return `${currentRoundPoints}/${totalPoints}`;
+  };
+
+  // Check if we should show red tint (someone submitted AND <= 15 seconds remaining)
+  const shouldShowRedTint = !(showResults || allPlayersSubmitted) && 
+                            remainingSeconds !== null && 
+                            remainingSeconds <= 15 && 
+                            (submittedPlayers.size > 0 || isSubmitted);
+  
   return (
-    <div className={styles.gameSessionPage}>
+    <div className={`${styles.gameSessionPage} ${shouldShowRedTint ? styles.redTint : ''}`}>
       {gameSession && gameSession.is_completed ? (
         // Game completed - show winner and statistics
         <div className={styles.gameCompleted}>
@@ -651,7 +676,7 @@ export default function GameSessionPage() {
                   <div className={styles.winnerDisplay}>
                     <Header text={winners.length === 1 ? "Winner:" : "Winners (Tie):"} variant="playful" />
                     {winners.map(winner => (
-                      <Text key={winner.id} text={`${winner.game_name || winner.username} - ${maxScore} points`} />
+                      <Text key={winner.id} text={`${winner.game_name || winner.username} - ${maxScore}`} />
                     ))}
                   </div>
                 )}
@@ -662,7 +687,7 @@ export default function GameSessionPage() {
                       <thead>
                         <tr>
                           <th>Player</th>
-                          <th>Total Points</th>
+                          <th>Total</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -745,7 +770,7 @@ export default function GameSessionPage() {
                   const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
                   const playerUsername = player.username || player.game_name;
                   const hasSubmitted = submittedPlayers.has(playerUsername);
-                  const showPoints = allPlayersSubmitted && playerScore && playerScore.points !== null && playerScore.points !== undefined;
+                  const roundPoints = playerScore?.points !== null && playerScore?.points !== undefined ? playerScore.points : null;
                   return (
                     <div key={player.id} className={styles.playerBadge}>
                       <span className={styles.playerName}>
@@ -753,7 +778,7 @@ export default function GameSessionPage() {
                         {player.user_id === room.host_id && <span className={styles.hostIcon}>Host</span>}
                       </span>
                       {hasSubmitted && <span className={styles.submittedIcon}>Submitted</span>}
-                      {showPoints && <span className={styles.pointsBadge}>{playerScore.points}pts</span>}
+                      <span className={styles.pointsBadge}>{formatPointsDisplay(roundPoints, player.id)}</span>
                     </div>
                   );
                 })}
@@ -856,7 +881,7 @@ export default function GameSessionPage() {
                                 <td key={player.id} className={styles.answerCell}>
                                   <div className={styles.answerText}>{answer || '-'}</div>
                                   {points !== null && points !== undefined && (
-                                    <div className={styles.pointsLabel}>{points} pts</div>
+                                    <div className={styles.pointsLabel}>{points}</div>
                                   )}
                                 </td>
                               );
@@ -867,12 +892,12 @@ export default function GameSessionPage() {
                     </tbody>
                     <tfoot>
                       <tr className={styles.totalRow}>
-                        <td className={styles.totalCell}>Total Points</td>
+                        <td className={styles.totalCell}>Round/Total</td>
                         {players.map((player) => {
                           const totalPoints = getPlayerTotalPoints(player.id);
                           return (
                             <td key={player.id} className={styles.totalCell}>
-                              {totalPoints !== null && totalPoints !== undefined ? totalPoints : '-'}
+                              {formatPointsDisplay(totalPoints, player.id)}
                             </td>
                           );
                         })}
