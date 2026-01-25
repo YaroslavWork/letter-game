@@ -113,7 +113,7 @@ export default function LoginPage() {
       <div className={styles.decorativeCircle1}></div>
       <div className={styles.decorativeCircle2}></div>
       <form onSubmit={handleSubmit} noValidate className={styles.form} action="#" method="post">
-        <Header text={"Welcome Back! 🎮"} />
+        <Header text={"Welcome Back!"} />
 
         <Input 
           type="text" 

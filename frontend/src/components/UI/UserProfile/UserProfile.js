@@ -52,7 +52,6 @@ export default function UserProfile({ user, onLogout }) {
           onClick={onLogout}
           aria-label="Logout"
         >
-          <span className={styles.logoutIcon}>🚪</span>
           <span>Logout</span>
         </button>
       )}

@@ -196,7 +196,7 @@ export default function MainPage () {
             <div className={styles.decorativeCircle2}></div>
             
             <div className={styles.titleSection}>
-                <Header text="Letter Game 🎮" />
+                <Header text="Letter Game" />
             </div>
 
             <div className={styles.contentContainer}>

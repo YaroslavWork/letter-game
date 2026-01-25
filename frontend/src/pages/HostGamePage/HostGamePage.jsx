@@ -307,7 +307,7 @@ export default function HostGamePage() {
     return (
       <div className={styles.hostGamePage}>
         <div className={styles.loadingState}>
-          <div className={styles.loadingSpinner}>🎮</div>
+          <div className={styles.loadingSpinner}>Loading</div>
           <p className={styles.loadingText}>Creating room...</p>
         </div>
       </div>
@@ -322,7 +322,7 @@ export default function HostGamePage() {
         <div className={styles.errorState}>
           <Header text="Host Game" variant="playful" />
           <div className={styles.errorCard}>
-            <span className={styles.errorIcon}>⚠️</span>
+            <span className={styles.errorIcon}>!</span>
             <p className={styles.errorText}>Failed to create room</p>
           </div>
           <div className={styles.errorActions}>
@@ -363,7 +363,7 @@ export default function HostGamePage() {
         <div className={styles.errorState}>
           <Header text="Host Game" variant="playful" />
           <div className={styles.errorCard}>
-            <span className={styles.errorIcon}>⚠️</span>
+            <span className={styles.errorIcon}>!</span>
             <p className={styles.errorText}>Failed to create room. Please try again.</p>
           </div>
           <div className={styles.errorActions}>
@@ -421,7 +421,7 @@ export default function HostGamePage() {
               variant="playful"
               fullWidth
             >
-              {createRoomMutation.isPending ? '⏳ Creating...' : '🚀 Create Room'}
+              {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
             </Button>
             <Button 
               onButtonClick={() => navigate('/')}
@@ -449,14 +449,12 @@ export default function HostGamePage() {
         {/* Players Tiles - Left Upper Corner */}
         <div className={styles.playersSection}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.icon}>👥</span>
             Players <span className={styles.count}>({players.length})</span>
           </h2>
           <div className={styles.playersGrid}>
             {players.length === 0 ? (
               <div className={styles.emptyState}>
                 <p>No players yet</p>
-                <span className={styles.emptyIcon}>🎮</span>
               </div>
             ) : (
               players.map((player) => (
@@ -472,7 +470,7 @@ export default function HostGamePage() {
                       {player.game_name || player.username}
                     </p>
                     {player.user_id === room.host_id && (
-                      <span className={styles.hostBadge}>👑 Host</span>
+                      <span className={styles.hostBadge}>Host</span>
                     )}
                   </div>
                   {player.user_id !== room.host_id && (
@@ -493,7 +491,6 @@ export default function HostGamePage() {
         {/* Room Info - Right Corner */}
         <div className={styles.roomInfoSection}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.icon}>🏠</span>
             Room Info
           </h2>
           <div className={styles.roomInfoCard}>
@@ -514,13 +511,12 @@ export default function HostGamePage() {
           {gameSession && (
             <div className={styles.gameRulesCard}>
               <h3 className={styles.rulesTitle}>
-                <span className={styles.icon}>⚙️</span>
                 Game Rules
               </h3>
               <div className={styles.ruleItem}>
                 <span className={styles.ruleLabel}>Letter:</span>
                 <span className={styles.ruleValue}>
-                  {gameSession.final_letter || (gameSession.is_random_letter ? '🎲 Random' : 'Not set')}
+                  {gameSession.final_letter || (gameSession.is_random_letter ? 'Random' : 'Not set')}
                 </span>
               </div>
               {gameSession.total_rounds && (
@@ -545,7 +541,6 @@ export default function HostGamePage() {
               )}
               {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
                 <div className={styles.noRules}>
-                  <span className={styles.emptyIcon}>📝</span>
                   <p>No game types configured yet</p>
                 </div>
               )}
@@ -561,7 +556,7 @@ export default function HostGamePage() {
           variant="playful"
           fullWidth
         >
-          ⚙️ Configure Game Rules
+          Configure Game Rules
         </Button>
         <Button 
           onButtonClick={handleStartGame}
@@ -569,7 +564,7 @@ export default function HostGamePage() {
           variant="success"
           fullWidth
         >
-          {startGameSessionMutation.isPending ? '⏳ Starting...' : '🚀 Start Game'}
+          {startGameSessionMutation.isPending ? 'Starting...' : 'Start Game'}
         </Button>
         <div className={styles.secondaryActions}>
           <Button 
@@ -577,7 +572,7 @@ export default function HostGamePage() {
             variant="danger"
             size="small"
           >
-            🗑️ Delete Room
+            Delete Room
           </Button>
           <Button 
             onButtonClick={() => {
@@ -589,7 +584,7 @@ export default function HostGamePage() {
             variant="warning"
             size="small"
           >
-            🚪 Leave
+            Leave
           </Button>
         </div>
       </div>

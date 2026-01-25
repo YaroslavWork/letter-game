@@ -27,14 +27,12 @@ export default function MenuBar({ onHostClick, onJoinClick }) {
         className={`${styles.menuItem} ${styles.hostItem}`}
         onClick={handleHost}
       >
-        <span className={styles.menuIcon}>🏠</span>
         <span className={styles.menuText}>Host Game</span>
       </button>
       <button 
         className={`${styles.menuItem} ${styles.joinItem}`}
         onClick={handleJoin}
       >
-        <span className={styles.menuIcon}>🎮</span>
         <span className={styles.menuText}>Join Game</span>
       </button>
     </div>

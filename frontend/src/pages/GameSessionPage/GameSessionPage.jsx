@@ -611,7 +611,7 @@ export default function GameSessionPage() {
       {gameSession && gameSession.is_completed ? (
         // Game completed - show winner and statistics
         <div className={styles.gameCompleted}>
-          <Header text="🎉 Game Completed! 🎉" variant="playful" />
+          <Header text="Game Completed!" variant="playful" />
           {(() => {
             // Get total scores from API response if available
             const totalScores = {};
@@ -651,7 +651,7 @@ export default function GameSessionPage() {
                   <div className={styles.winnerDisplay}>
                     <Header text={winners.length === 1 ? "Winner:" : "Winners (Tie):"} variant="playful" />
                     {winners.map(winner => (
-                      <Text key={winner.id} text={`🏆 ${winner.game_name || winner.username} - ${maxScore} points`} />
+                      <Text key={winner.id} text={`${winner.game_name || winner.username} - ${maxScore} points`} />
                     ))}
                   </div>
                 )}
@@ -724,7 +724,7 @@ export default function GameSessionPage() {
                     variant="playful"
                     fullWidth
                   >
-                    {advanceRoundMutation.isPending ? '⏳ Advancing...' : '➡️ Next Round'}
+                    {advanceRoundMutation.isPending ? 'Advancing...' : 'Next Round'}
                   </Button>
                 </div>
               )}
@@ -743,9 +743,9 @@ export default function GameSessionPage() {
                     <div key={player.id} className={styles.playerBadge}>
                       <span className={styles.playerName}>
                         {player.game_name || player.username}
-                        {player.user_id === room.host_id && <span className={styles.hostIcon}>👑</span>}
+                        {player.user_id === room.host_id && <span className={styles.hostIcon}>Host</span>}
                       </span>
-                      {hasSubmitted && <span className={styles.submittedIcon}>✓</span>}
+                      {hasSubmitted && <span className={styles.submittedIcon}>Submitted</span>}
                       {showPoints && <span className={styles.pointsBadge}>{playerScore.points}pts</span>}
                     </div>
                   );
@@ -765,7 +765,6 @@ export default function GameSessionPage() {
           {!(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 && (
             <div className={styles.categoriesSection}>
               <h2 className={styles.sectionTitle}>
-                <span className={styles.icon}>📝</span>
                 Categories
               </h2>
               <div className={styles.categoriesGrid}>
@@ -793,7 +792,7 @@ export default function GameSessionPage() {
                       )}
                       {!error && currentValue.trim() !== '' && finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase() && (
                         <div className={styles.successMessage}>
-                          ✓ Valid
+                          Valid
                         </div>
                       )}
                     </div>
@@ -808,7 +807,7 @@ export default function GameSessionPage() {
                     variant="playful"
                     fullWidth
                   >
-                    {submitAnswerMutation.isPending ? '⏳ Submitting...' : '🚀 Submit Answers'}
+                    {submitAnswerMutation.isPending ? 'Submitting...' : 'Submit Answers'}
                   </Button>
                   {Object.keys(validationErrors).length > 0 && (
                     <div className={styles.validationWarning}>
@@ -819,7 +818,6 @@ export default function GameSessionPage() {
               )}
               {isSubmitted && !allPlayersSubmitted && (
                 <div className={styles.waitingMessage}>
-                  <span className={styles.waitingIcon}>⏳</span>
                   Answers submitted! Waiting for other players...
                 </div>
               )}
@@ -830,7 +828,6 @@ export default function GameSessionPage() {
           {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
             <div className={styles.resultsSection}>
                 <h2 className={styles.sectionTitle}>
-                  <span className={styles.icon}>📊</span>
                   Results
                 </h2>
                 <div className={styles.resultsTable}>
@@ -841,7 +838,7 @@ export default function GameSessionPage() {
                         {players.map((player) => (
                           <th key={player.id} className={styles.tableHeader}>
                             {player.game_name || player.username}
-                            {player.user_id === room.host_id && <span className={styles.hostIcon}>👑</span>}
+                            {player.user_id === room.host_id && <span className={styles.hostIcon}>Host</span>}
                           </th>
                         ))}
                       </tr>
@@ -894,7 +891,7 @@ export default function GameSessionPage() {
                 variant="playful"
                 size="small"
               >
-                ⚙️ Configure Rules
+                Configure Rules
               </Button>
             )}
             <Button 
@@ -915,7 +912,7 @@ export default function GameSessionPage() {
         </>
       ) : (
         <div className={styles.loadingState}>
-          <div className={styles.loadingSpinner}>🎮</div>
+          <div className={styles.loadingSpinner}>Loading</div>
           <p className={styles.loadingText}>Loading game session...</p>
         </div>
       )}

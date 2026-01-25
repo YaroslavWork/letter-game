@@ -335,7 +335,7 @@ export default function JoinGamePage() {
               variant="playful"
               fullWidth
             >
-              {joinRoomMutation.isPending ? '⏳ Joining...' : '🚀 Join Room'}
+              {joinRoomMutation.isPending ? 'Joining...' : 'Join Room'}
             </Button>
           </form>
 
@@ -364,14 +364,12 @@ export default function JoinGamePage() {
         {/* Players Tiles - Left Upper Corner */}
         <div className={styles.playersSection}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.icon}>👥</span>
             Players <span className={styles.count}>({players.length})</span>
           </h2>
           <div className={styles.playersGrid}>
             {players.length === 0 ? (
               <div className={styles.emptyState}>
                 <p>No players yet</p>
-                <span className={styles.emptyIcon}>🎮</span>
               </div>
             ) : (
               players.map((player) => (
@@ -387,7 +385,7 @@ export default function JoinGamePage() {
                       {player.game_name || player.username}
                     </p>
                     {player.user_id === room.host_id && (
-                      <span className={styles.hostBadge}>👑 Host</span>
+                      <span className={styles.hostBadge}>Host</span>
                     )}
                   </div>
                 </div>
@@ -399,7 +397,6 @@ export default function JoinGamePage() {
         {/* Room Info - Right Corner */}
         <div className={styles.roomInfoSection}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.icon}>🏠</span>
             Room Info
           </h2>
           <div className={styles.roomInfoCard}>
@@ -424,13 +421,12 @@ export default function JoinGamePage() {
           {gameSession && (
             <div className={styles.gameRulesCard}>
               <h3 className={styles.rulesTitle}>
-                <span className={styles.icon}>⚙️</span>
                 Game Rules
               </h3>
               <div className={styles.ruleItem}>
                 <span className={styles.ruleLabel}>Letter:</span>
                 <span className={styles.ruleValue}>
-                  {gameSession.final_letter || (gameSession.is_random_letter ? '🎲 Random' : 'Not set')}
+                  {gameSession.final_letter || (gameSession.is_random_letter ? 'Random' : 'Not set')}
                 </span>
               </div>
               {gameSession.total_rounds && (
@@ -455,7 +451,6 @@ export default function JoinGamePage() {
               )}
               {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
                 <div className={styles.noRules}>
-                  <span className={styles.emptyIcon}>📝</span>
                   <p>Game types not yet configured by host</p>
                 </div>
               )}
@@ -465,13 +460,11 @@ export default function JoinGamePage() {
           {!gameSession && (
             <div className={styles.gameRulesCard}>
               <h3 className={styles.rulesTitle}>
-                <span className={styles.icon}>⚙️</span>
                 Game Rules
               </h3>
-              <div className={styles.noRules}>
-                <span className={styles.emptyIcon}>📝</span>
-                <p>Game rules not yet configured by host</p>
-              </div>
+                <div className={styles.noRules}>
+                  <p>Game rules not yet configured by host</p>
+                </div>
             </div>
           )}
         </div>
@@ -484,7 +477,7 @@ export default function JoinGamePage() {
           variant="warning"
           fullWidth
         >
-          🚪 Leave Room
+          Leave Room
         </Button>
       </div>
     </div>
