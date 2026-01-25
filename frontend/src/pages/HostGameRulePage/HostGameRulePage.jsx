@@ -261,153 +261,198 @@ export default function HostGameRulePage() {
   if (isLoadingRoom || isLoadingTypes || isLoadingSession) {
     return (
       <div className={styles.hostGameRulePage}>
-        <Text text="Loading game rules..." />
+        <div className={styles.loadingContainer}>
+          <Text text="Loading game rules..." />
+        </div>
       </div>
     );
   }
 
   const gameTypes = gameTypesData?.data || gameTypesData || [];
+  const room = roomData?.data || roomData;
 
   return (
     <div className={styles.hostGameRulePage}>
-      <Header text="Configure Game Rules - Państwa Miasto" />
+      <div className={styles.decorativeCircle1}></div>
+      <div className={styles.decorativeCircle2}></div>
       
-      <div className={styles.roomInfo}>
-        <Text text={`Room ID: ${roomId}`} />
-        {roomData && (
-          <Text text={`Room Name: ${(roomData?.data || roomData)?.name || 'N/A'}`} />
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <Header text="Number of Rounds" />
-        <div className={styles.roundsSection}>
-          <Text text="How many rounds do you want to play?" />
-          <Input
-            type="number"
-            value={totalRounds}
-            onChange={(e) => {
-              const value = parseInt(e.target.value) || 1;
-              if (value >= 1 && value <= 10) {
-                setTotalRounds(value);
-              }
-            }}
-            min="1"
-            max="10"
-            style={{ width: '100px', textAlign: 'center' }}
-          />
-          <Text text="(Each round will use a random letter)" />
+      <div className={styles.container}>
+        <div className={styles.headerSection}>
+          <Header text="Configure Game Rules" variant="playful" />
         </div>
-      </div>
-
-      <div className={styles.section}>
-        <Header text="Round Timer" />
-        <div className={styles.roundsSection}>
-          <Text text="Timer duration per round (in seconds):" />
-          <Input
-            type="number"
-            value={roundTimerSeconds}
-            onChange={(e) => {
-              const value = parseInt(e.target.value) || 60;
-              if (value >= 10 && value <= 600) {
-                setRoundTimerSeconds(value);
-              }
-            }}
-            min="10"
-            max="600"
-            style={{ width: '100px', textAlign: 'center' }}
-          />
-          <Text text={`(${Math.floor(roundTimerSeconds / 60)} minutes ${roundTimerSeconds % 60} seconds)`} />
+        
+        <div className={styles.roomInfo}>
+          <div className={styles.roomInfoText}>
+            <strong>Room ID:</strong> {roomId}
+          </div>
+          {room && (
+            <div className={styles.roomInfoText}>
+              <strong>Room Name:</strong> {room.name || 'N/A'}
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className={styles.section}>
-        <Header text="Reduce Timer on Complete" />
-        <div className={styles.roundsSection}>
-          <Text text="When a player completes all categories, reduce timer to (in seconds):" />
-          <Input
-            type="number"
-            value={reduceTimerOnCompleteSeconds}
-            onChange={(e) => {
-              const value = parseInt(e.target.value) || 15;
-              if (value >= 5 && value <= 300) {
-                setReduceTimerOnCompleteSeconds(value);
-              }
-            }}
-            min="5"
-            max="300"
-            style={{ width: '100px', textAlign: 'center' }}
-          />
-          <Text text={`Timer will only be reduced if remaining time is greater than ${reduceTimerOnCompleteSeconds} seconds`} />
-        </div>
-      </div>
-
-      {totalRounds === 1 && (
-        <div className={styles.section}>
-          <Header text="Choose Letter" />
-          <div className={styles.letterSection}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={isRandomLetter}
-                onChange={handleRandomLetterToggle}
-                className={styles.checkbox}
-              />
-              <Text text="Random Letter" />
-            </label>
-            
-            {!isRandomLetter && (
-              <div className={styles.letterInput}>
-                <Text text="Enter Letter:" />
-                <Input
-                  type="text"
-                  value={letter}
-                  onChange={handleLetterChange}
-                  placeholder="A-Z"
-                  maxLength={1}
-                  style={{ textTransform: 'uppercase', width: '60px', textAlign: 'center' }}
+        {/* 2x2 Grid for Configuration Sections */}
+        <div className={styles.configGrid}>
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <Header text="Number of Rounds" />
+            </div>
+            <div className={styles.roundsSection}>
+              <Text text="Rounds:" />
+              <div className={styles.roundsInputWrapper}>
+                <input
+                  type="number"
+                  value={totalRounds}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    if (value >= 1 && value <= 10) {
+                      setTotalRounds(value);
+                    }
+                  }}
+                  min="1"
+                  max="10"
+                  className={styles.roundsInput}
                 />
+                <span className={styles.roundsHint}>(random letter each)</span>
               </div>
-            )}
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <Header text="Round Timer" />
+            </div>
+            <div className={styles.roundsSection}>
+              <Text text="Duration:" />
+              <div className={styles.roundsInputWrapper}>
+                <input
+                  type="number"
+                  value={roundTimerSeconds}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 60;
+                    if (value >= 10 && value <= 600) {
+                      setRoundTimerSeconds(value);
+                    }
+                  }}
+                  min="10"
+                  max="600"
+                  className={styles.roundsInput}
+                />
+                <Text text="sec" />
+                <span className={styles.roundsHint}>
+                  ({Math.floor(roundTimerSeconds / 60)}m {roundTimerSeconds % 60}s)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <Header text="Reduce Timer on Complete" />
+            </div>
+            <div className={styles.roundsSection}>
+              <Text text="Reduce to:" />
+              <div className={styles.roundsInputWrapper}>
+                <input
+                  type="number"
+                  value={reduceTimerOnCompleteSeconds}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 15;
+                    if (value >= 5 && value <= 300) {
+                      setReduceTimerOnCompleteSeconds(value);
+                    }
+                  }}
+                  min="5"
+                  max="300"
+                  className={styles.roundsInput}
+                />
+                <Text text="sec" />
+                <span className={styles.roundsHint}>
+                  (if time &gt; {reduceTimerOnCompleteSeconds}s)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {totalRounds === 1 ? (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <Header text="Choose Letter" />
+              </div>
+              <div className={styles.letterSection}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isRandomLetter}
+                    onChange={handleRandomLetterToggle}
+                    className={styles.checkbox}
+                  />
+                  <Text text="Random Letter" />
+                </label>
+                
+                {!isRandomLetter && (
+                  <div className={styles.letterInput}>
+                    <span className={styles.letterInputLabel}>Enter Letter:</span>
+                    <input
+                      type="text"
+                      value={letter}
+                      onChange={handleLetterChange}
+                      placeholder="A-Z"
+                      maxLength={1}
+                      className={styles.letterInputField}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.section}></div>
+          )}
+        </div>
+
+        {/* Game Types Section - Full Width Below Grid */}
+        <div className={`${styles.section} ${styles.typesSection}`}>
+          <div className={styles.sectionHeader}>
+            <Header text="Select Game Types" />
+          </div>
+          <div className={styles.typesList}>
+            {gameTypes.map((type) => (
+              <label key={type.key} className={styles.typeItem}>
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes(type.key)}
+                  onChange={() => handleTypeToggle(type.key)}
+                />
+                <Text text={type.label} />
+              </label>
+            ))}
           </div>
         </div>
-      )}
 
-      <div className={styles.section}>
-        <Header text="Select Game Types" />
-        <div className={styles.typesList}>
-          {gameTypes.map((type) => (
-            <label key={type.key} className={styles.typeItem}>
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(type.key)}
-                onChange={() => handleTypeToggle(type.key)}
-                className={styles.checkbox}
-              />
-              <Text text={type.label} />
-            </label>
-          ))}
+        {error && (
+          <div className={styles.error}>
+            <Text text={error} />
+          </div>
+        )}
+
+        <div className={styles.actions}>
+          <Button 
+            onButtonClick={handleSave}
+            disabled={updateGameSessionMutation.isPending}
+            variant="playful"
+            fullWidth
+          >
+            {updateGameSessionMutation.isPending ? 'Saving...' : 'Save Rules'}
+          </Button>
+          <Button 
+            onButtonClick={() => navigate(`/host`)}
+            variant="primary"
+            fullWidth
+          >
+            Back to Room
+          </Button>
         </div>
-      </div>
-
-      {error && (
-        <div className={styles.error}>
-          <Text text={error} />
-        </div>
-      )}
-
-      <div className={styles.actions}>
-        <Button 
-          onButtonClick={handleSave}
-          disabled={updateGameSessionMutation.isPending}
-        >
-          {updateGameSessionMutation.isPending ? 'Saving...' : 'Save Rules'}
-        </Button>
-        <Button 
-          onButtonClick={() => navigate(`/host`)}
-        >
-          Back to Room
-        </Button>
       </div>
     </div>
   );
