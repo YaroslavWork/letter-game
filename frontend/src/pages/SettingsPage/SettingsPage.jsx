@@ -38,6 +38,12 @@ export default function SettingsPage() {
               >
                 {t('settings.polish')}
               </button>
+              <button
+                className={`${styles.languageButton} ${language === 'ukrainian' ? styles.active : ''}`}
+                onClick={() => handleLanguageChange('ukrainian')}
+              >
+                {t('settings.ukrainian')}
+              </button>
             </div>
           </div>
         </div>

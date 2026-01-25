@@ -114,6 +114,16 @@ export default function LoginPage() {
     <div className={styles.loginPage}>
       <div className={styles.decorativeCircle1}></div>
       <div className={styles.decorativeCircle2}></div>
+      <div className={styles.settingsButtonContainer}>
+        <button 
+          className={styles.settingsButton}
+          onClick={() => navigate('/settings')}
+          aria-label="Settings"
+          title="Settings"
+        >
+          ⚙️
+        </button>
+      </div>
       <form onSubmit={handleSubmit} noValidate className={styles.form} action="#" method="post">
         <Header text={t('login.welcome')} />
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { english } from '../locales/english';
 import { polish } from '../locales/polish';
+import { ukrainian } from '../locales/ukrainian';
 
 const LanguageContext = createContext(null);
 
@@ -16,6 +17,7 @@ export const useLanguage = () => {
 const languages = {
   english,
   polish,
+  ukrainian,
 };
 
 export const LanguageProvider = ({ children, defaultLanguage = 'english' }) => {

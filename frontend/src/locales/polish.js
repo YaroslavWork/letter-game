@@ -221,5 +221,6 @@ export const polish = {
   'settings.selectLanguage': 'Wybierz język',
   'settings.english': 'Angielski',
   'settings.polish': 'Polski',
+  'settings.ukrainian': 'Ukraiński',
   'settings.backToHome': '← Wróć do strony głównej',
 };

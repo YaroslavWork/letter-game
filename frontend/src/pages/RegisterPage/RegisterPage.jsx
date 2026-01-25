@@ -126,6 +126,16 @@ export default function RegisterPage() {
       <div className={styles.decorativeCircle1}></div>
       <div className={styles.decorativeCircle2}></div>
       <div className={styles.decorativeCircle3}></div>
+      <div className={styles.settingsButtonContainer}>
+        <button 
+          className={styles.settingsButton}
+          onClick={() => navigate('/settings')}
+          aria-label="Settings"
+          title="Settings"
+        >
+          ⚙️
+        </button>
+      </div>
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
         <Header text={t('register.joinFun')} />
 

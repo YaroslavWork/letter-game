@@ -238,3 +238,51 @@
     max-width: 560px;
   }
 }
+
+/* Settings button */
+.settingsButtonContainer {
+  position: fixed;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: 100;
+}
+
+.settingsButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.settingsButton:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.settingsButton:active {
+  transform: scale(0.95) rotate(90deg);
+}
+
+@media (min-width: 1024px) {
+  .settingsButtonContainer {
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+  }
+
+  .settingsButton {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+  }
+}

@@ -221,5 +221,6 @@ export const english = {
   'settings.selectLanguage': 'Select Language',
   'settings.english': 'English',
   'settings.polish': 'Polish',
+  'settings.ukrainian': 'Ukrainian',
   'settings.backToHome': '← Back to Home',
 };
