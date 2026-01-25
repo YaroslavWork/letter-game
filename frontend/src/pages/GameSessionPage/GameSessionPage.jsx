@@ -682,7 +682,7 @@ export default function GameSessionPage() {
         </div>
       ) : gameSession && !gameSession.is_completed ? (
         <>
-          {/* Top Bar: Letter (left), Timer/Next Round Button (center), Players (right) */}
+          {/* Top Bar: Letter (left), Rounds & Timer (center), Players (right) */}
           <div className={styles.topBar}>
             {/* Letter Display - Left */}
             <div className={styles.letterCard}>
@@ -690,9 +690,16 @@ export default function GameSessionPage() {
               <div className={styles.letterValue}>{finalLetter || '?'}</div>
             </div>
 
-            {/* Center Column - Timer or Next Round Button */}
+            {/* Center Column - Rounds (top) and Timer/Next Round Button (bottom) */}
             <div className={styles.centerColumn}>
-              {/* Timer Display - Center (only show when NOT showing results) */}
+              {/* Round Info - Top */}
+              {gameSession.total_rounds > 1 && (
+                <div className={styles.roundInfo}>
+                  Round {gameSession.current_round} of {gameSession.total_rounds}
+                </div>
+              )}
+
+              {/* Timer Display - Bottom (only show when NOT showing results) */}
               {!(showResults || allPlayersSubmitted) && remainingSeconds !== null && (
                 <div className={styles.timerCard}>
                   <div className={styles.timerLabel}>Time</div>
@@ -702,7 +709,7 @@ export default function GameSessionPage() {
                 </div>
               )}
 
-              {/* Next Round Button - Center (only show when results are showing and user is host) */}
+              {/* Next Round Button - Bottom (only show when results are showing and user is host) */}
               {(showResults || allPlayersSubmitted) && isHost && gameSession.total_rounds > 1 && !gameSession.is_completed && (
                 <div className={styles.nextRoundButtonCard}>
                   <Button 
@@ -753,13 +760,6 @@ export default function GameSessionPage() {
               </div>
             </div>
           </div>
-
-          {/* Round Info */}
-          {gameSession.total_rounds > 1 && (
-            <div className={styles.roundInfo}>
-              Round {gameSession.current_round} of {gameSession.total_rounds}
-            </div>
-          )}
 
           {/* Categories Section - Show when time is active, hide when results show */}
           {!(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 && (
