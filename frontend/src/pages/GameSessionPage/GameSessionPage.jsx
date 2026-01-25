@@ -636,7 +636,6 @@ export default function GameSessionPage() {
       {gameSession && gameSession.is_completed ? (
         // Game completed - show winner and statistics
         <div className={styles.gameCompleted}>
-          <Header text="Game Completed!" variant="playful" />
           {(() => {
             // Get total scores from API response if available
             const totalScores = {};
@@ -656,45 +655,106 @@ export default function GameSessionPage() {
               });
             }
 
-            // Calculate winners
-            let winners = [];
-            let maxScore = -1;
-            
-            players.forEach(player => {
-              const score = totalScores[player.id] || 0;
-              if (score > maxScore) {
-                maxScore = score;
-                winners = [player];
-              } else if (score === maxScore && maxScore > 0) {
-                winners.push(player);
+            // Helper function to get initials
+            const getInitials = (name) => {
+              if (!name) return '?';
+              const words = name.trim().split(' ');
+              if (words.length >= 2) {
+                return (words[0][0] + words[1][0]).toUpperCase();
               }
+              return name.substring(0, 2).toUpperCase();
+            };
+
+            // Sort all players by score (descending)
+            const sortedPlayers = [...players].sort((a, b) => {
+              const scoreA = totalScores[a.id] || 0;
+              const scoreB = totalScores[b.id] || 0;
+              return scoreB - scoreA;
             });
+
+            // Get top 3 winners
+            const topThree = sortedPlayers.slice(0, 3).filter(player => (totalScores[player.id] || 0) > 0);
 
             return (
               <div className={styles.winnerSection}>
-                {winners.length > 0 && (
-                  <div className={styles.winnerDisplay}>
-                    <Header text={winners.length === 1 ? "Winner:" : "Winners (Tie):"} variant="playful" />
-                    {winners.map(winner => (
-                      <Text key={winner.id} text={`${winner.game_name || winner.username} - ${maxScore}`} />
-                    ))}
+                <div className={styles.winnerAnnouncement}>
+                  <Header text="Game Completed!" variant="playful" />
+                  <p className={styles.winnerSubtitle}>Final Results</p>
+                </div>
+
+                {topThree.length > 0 && (
+                  <div className={styles.podium}>
+                    {/* Second Place (Silver) - Left */}
+                    {topThree.length >= 2 && (
+                      <div className={`${styles.podiumPlace} ${styles.secondPlace}`}>
+                        <div className={styles.medal}>2</div>
+                        <div className={styles.podiumAvatar}>
+                          {getInitials(topThree[1].game_name || topThree[1].username)}
+                        </div>
+                        <div className={styles.podiumName}>
+                          {topThree[1].game_name || topThree[1].username}
+                        </div>
+                        <div className={styles.podiumScore}>
+                          {totalScores[topThree[1].id] || 0}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* First Place (Gold) - Center */}
+                    <div className={`${styles.podiumPlace} ${styles.firstPlace}`}>
+                      <div className={styles.medal}>1</div>
+                      <div className={styles.podiumAvatar}>
+                        {getInitials(topThree[0].game_name || topThree[0].username)}
+                      </div>
+                      <div className={styles.podiumName}>
+                        {topThree[0].game_name || topThree[0].username}
+                      </div>
+                      <div className={styles.podiumScore}>
+                        {totalScores[topThree[0].id] || 0}
+                      </div>
+                    </div>
+
+                    {/* Third Place (Bronze) - Right */}
+                    {topThree.length >= 3 && (
+                      <div className={`${styles.podiumPlace} ${styles.thirdPlace}`}>
+                        <div className={styles.medal}>3</div>
+                        <div className={styles.podiumAvatar}>
+                          {getInitials(topThree[2].game_name || topThree[2].username)}
+                        </div>
+                        <div className={styles.podiumName}>
+                          {topThree[2].game_name || topThree[2].username}
+                        </div>
+                        <div className={styles.podiumScore}>
+                          {totalScores[topThree[2].id] || 0}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* All Players Statistics */}
                 <div className={styles.statisticsSection}>
-                  <Header text="Final Statistics" variant="playful" />
+                  <Header text="All Players" variant="playful" />
                   <div className={styles.statsTable}>
                     <table className={styles.statisticsTable}>
                       <thead>
                         <tr>
+                          <th>Rank</th>
                           <th>Player</th>
                           <th>Total</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {players.map(player => (
-                          <tr key={player.id}>
+                        {sortedPlayers.map((player, index) => (
+                          <tr key={player.id} className={index < 3 ? styles.topThreeRow : ''}>
+                            <td className={styles.rankCell}>
+                              {index + 1}
+                              {index === 0 && <span className={styles.rankBadge}>1st</span>}
+                              {index === 1 && <span className={styles.rankBadge}>2nd</span>}
+                              {index === 2 && <span className={styles.rankBadge}>3rd</span>}
+                            </td>
                             <td>{player.game_name || player.username}</td>
-                            <td>{totalScores[player.id] || 0}</td>
+                            <td className={styles.scoreCell}>{totalScores[player.id] || 0}</td>
                           </tr>
                         ))}
                       </tbody>
