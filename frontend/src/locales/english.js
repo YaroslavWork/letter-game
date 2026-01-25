@@ -153,6 +153,10 @@ export const english = {
   'game.failedToAdvanceRound': 'Failed to advance round. Please try again.',
   'game.roomNotFound': 'Room not found. The room may have been deleted or the room ID is invalid.',
   'game.invalidRoomIdFormat': 'Invalid room ID format.',
+  'game.rank1st': '1st',
+  'game.rank2nd': '2nd',
+  'game.rank3rd': '3rd',
+  'game.loading': 'Loading',
 
   // Host Game Rule Page
   'hostRules.configureGameRules': 'Configure Game Rules',
@@ -210,4 +214,12 @@ export const english = {
   // Common
   'common.confirm': 'Confirm',
   'common.areYouSure': 'Are you sure?',
+
+  // Settings Page
+  'settings.title': 'Settings',
+  'settings.language': 'Language',
+  'settings.selectLanguage': 'Select Language',
+  'settings.english': 'English',
+  'settings.polish': 'Polish',
+  'settings.backToHome': '← Back to Home',
 };

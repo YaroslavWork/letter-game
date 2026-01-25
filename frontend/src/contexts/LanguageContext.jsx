@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { english } from '../locales/english';
+import { polish } from '../locales/polish';
 
 const LanguageContext = createContext(null);
 
@@ -14,10 +15,22 @@ export const useLanguage = () => {
 // Language files mapping
 const languages = {
   english,
+  polish,
 };
 
 export const LanguageProvider = ({ children, defaultLanguage = 'english' }) => {
-  const [language, setLanguage] = useState(defaultLanguage);
+  // Load language from localStorage or use default
+  const getInitialLanguage = () => {
+    const savedLanguage = localStorage.getItem('app_language');
+    return savedLanguage && languages[savedLanguage] ? savedLanguage : defaultLanguage;
+  };
+
+  const [language, setLanguage] = useState(getInitialLanguage);
+
+  // Save language preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('app_language', language);
+  }, [language]);
 
   // Get translations for current language
   const translations = useMemo(() => {

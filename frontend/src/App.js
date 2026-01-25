@@ -6,6 +6,7 @@ import HostGamePage from './pages/HostGamePage/HostGamePage';
 import HostGameRulePage from './pages/HostGameRulePage/HostGameRulePage';
 import JoinGamePage from './pages/JoinGamePage/JoinGamePage';
 import GameSessionPage from './pages/GameSessionPage/GameSessionPage';
+import SettingsPage from './pages/SettingsPage/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
 import NotificationContainer from './components/UI/Notification/NotificationContainer';
 import ConfirmationDialog from './components/UI/ConfirmationDialog/ConfirmationDialog';
@@ -22,6 +23,7 @@ function App() {
         <Route path="/host/rules/:roomId" element={ <HostGameRulePage /> } />
         <Route path="/join" element={ <JoinGamePage /> } />
         <Route path="/game/:roomId" element={ <GameSessionPage /> } />
+        <Route path="/settings" element={ <SettingsPage /> } />
         <Route path="*" element={ <NotFoundPage /> } />
       </Routes>
       <NotificationContainer />

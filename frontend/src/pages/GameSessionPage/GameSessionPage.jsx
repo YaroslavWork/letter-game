@@ -512,14 +512,14 @@ export default function GameSessionPage() {
     }));
     
     // Validate that the word starts with the game letter (case-insensitive)
-      if (letter && value.trim().length > 0) {
-        const firstChar = value.trim()[0].toUpperCase();
-        if (firstChar !== letter) {
-          // Show error but allow typing
-          setValidationErrors(prev => ({
-            ...prev,
-            [gameType]: t('game.wordMustStartWith', { letter })
-          }));
+    if (letter && value.trim().length > 0) {
+      const firstChar = value.trim()[0].toUpperCase();
+      if (firstChar !== letter) {
+        // Show error but allow typing
+        setValidationErrors(prev => ({
+          ...prev,
+          [gameType]: t('game.wordMustStartWith', { letter })
+        }));
       } else {
         // Clear error if validation passes
         setValidationErrors(prev => {
@@ -680,8 +680,8 @@ export default function GameSessionPage() {
             return (
               <div className={styles.winnerSection}>
                 <div className={styles.winnerAnnouncement}>
-                  <Header text="Game Completed!" variant="playful" />
-                  <p className={styles.winnerSubtitle}>Final Results</p>
+                  <Header text={t('game.gameCompleted')} variant="playful" />
+                  <p className={styles.winnerSubtitle}>{t('game.finalResults')}</p>
                 </div>
 
                 {topThree.length > 0 && (
@@ -736,14 +736,14 @@ export default function GameSessionPage() {
 
                 {/* All Players Statistics */}
                 <div className={styles.statisticsSection}>
-                  <Header text="All Players" variant="playful" />
+                  <Header text={t('game.allPlayers')} variant="playful" />
                   <div className={styles.statsTable}>
                     <table className={styles.statisticsTable}>
                       <thead>
                         <tr>
-                          <th>Rank</th>
-                          <th>Player</th>
-                          <th>Total</th>
+                          <th>{t('game.rank')}</th>
+                          <th>{t('game.player')}</th>
+                          <th>{t('game.total')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -751,9 +751,9 @@ export default function GameSessionPage() {
                           <tr key={player.id} className={index < 3 ? styles.topThreeRow : ''}>
                             <td className={styles.rankCell}>
                               {index + 1}
-                              {index === 0 && <span className={styles.rankBadge}>1st</span>}
-                              {index === 1 && <span className={styles.rankBadge}>2nd</span>}
-                              {index === 2 && <span className={styles.rankBadge}>3rd</span>}
+                              {index === 0 && <span className={styles.rankBadge}>{t('game.rank1st')}</span>}
+                              {index === 1 && <span className={styles.rankBadge}>{t('game.rank2nd')}</span>}
+                              {index === 2 && <span className={styles.rankBadge}>{t('game.rank3rd')}</span>}
                             </td>
                             <td>{player.game_name || player.username}</td>
                             <td className={styles.scoreCell}>{totalScores[player.id] || 0}</td>
@@ -778,7 +778,7 @@ export default function GameSessionPage() {
                     variant="playful"
                     fullWidth
                   >
-                    Return to Room
+                    {t('game.returnToRoom')}
                   </Button>
                 </div>
               </div>
@@ -791,7 +791,7 @@ export default function GameSessionPage() {
           <div className={styles.topBar}>
             {/* Letter Display - Left */}
             <div className={styles.letterCard}>
-              <div className={styles.letterLabel}>Letter</div>
+              <div className={styles.letterLabel}>{t('game.letterLabel')}</div>
               <div className={styles.letterValue}>{finalLetter || '?'}</div>
             </div>
 
@@ -800,14 +800,14 @@ export default function GameSessionPage() {
               {/* Round Info - Top */}
               {gameSession.total_rounds > 1 && (
                 <div className={styles.roundInfo}>
-                  Round {gameSession.current_round} of {gameSession.total_rounds}
+                  {t('game.roundInfo', { current: gameSession.current_round, total: gameSession.total_rounds })}
                 </div>
               )}
 
               {/* Timer Display - Bottom (only show when NOT showing results) */}
               {!(showResults || allPlayersSubmitted) && remainingSeconds !== null && (
                 <div className={styles.timerCard}>
-                  <div className={styles.timerLabel}>Time</div>
+                  <div className={styles.timerLabel}>{t('game.time')}</div>
                   <div className={styles.timerValue}>
                     {Math.floor(remainingSeconds / 60)}:{String(remainingSeconds % 60).padStart(2, '0')}
                   </div>
@@ -836,7 +836,7 @@ export default function GameSessionPage() {
                     variant="playful"
                     fullWidth
                   >
-                    {advanceRoundMutation.isPending ? 'Advancing...' : 'Next Round'}
+                    {advanceRoundMutation.isPending ? t('game.advancing') : t('game.nextRound')}
                   </Button>
                 </div>
               )}
@@ -844,7 +844,7 @@ export default function GameSessionPage() {
 
             {/* Players Display - Right */}
             <div className={styles.playersCard}>
-              <div className={styles.playersLabel}>Players</div>
+              <div className={styles.playersLabel}>{t('game.players')}</div>
               <div className={styles.playersList}>
                 {players.map((player) => {
                   const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
@@ -855,9 +855,9 @@ export default function GameSessionPage() {
                     <div key={player.id} className={styles.playerBadge}>
                       <span className={styles.playerName}>
                         {player.game_name || player.username}
-                        {player.user_id === room.host_id && <span className={styles.hostIcon}>Host</span>}
+                        {player.user_id === room.host_id && <span className={styles.hostIcon}>{t('host.host')}</span>}
                       </span>
-                      {hasSubmitted && <span className={styles.submittedIcon}>Submitted</span>}
+                      {hasSubmitted && <span className={styles.submittedIcon}>{t('game.submitted')}</span>}
                       <span className={styles.pointsBadge}>{formatPointsDisplay(roundPoints, player.id)}</span>
                     </div>
                   );
@@ -870,7 +870,7 @@ export default function GameSessionPage() {
           {!(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 && (
             <div className={styles.categoriesSection}>
               <h2 className={styles.sectionTitle}>
-                Categories
+                {t('game.categories')}
               </h2>
               <div className={styles.categoriesGrid}>
                 {displayTypes.map((type, index) => {
@@ -885,7 +885,7 @@ export default function GameSessionPage() {
                       <input 
                         type="text" 
                         className={`${styles.categoryInput} ${error ? styles.categoryInputError : ''} ${isValid && currentValue.trim() !== '' ? styles.categoryInputValid : ''}`}
-                        placeholder={`Start with "${finalLetter || '?'}"`}
+                        placeholder={t('game.startWith', { letter: finalLetter || '?' })}
                         value={currentValue}
                         onChange={(e) => handleAnswerChange(gameTypeKey, e.target.value)}
                         disabled={isSubmitted}
@@ -897,7 +897,7 @@ export default function GameSessionPage() {
                       )}
                       {!error && currentValue.trim() !== '' && finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase() && (
                         <div className={styles.successMessage}>
-                          Valid
+                          {t('game.valid')}
                         </div>
                       )}
                     </div>
@@ -912,18 +912,18 @@ export default function GameSessionPage() {
                     variant="playful"
                     fullWidth
                   >
-                    {submitAnswerMutation.isPending ? 'Submitting...' : 'Submit Answers'}
+                    {submitAnswerMutation.isPending ? t('game.submitting') : t('game.submitAnswers')}
                   </Button>
                   {Object.keys(validationErrors).length > 0 && (
                     <div className={styles.validationWarning}>
-                      Please fix validation errors before submitting.
+                      {t('game.fixValidationErrors')}
                     </div>
                   )}
                 </div>
               )}
               {isSubmitted && !allPlayersSubmitted && (
                 <div className={styles.waitingMessage}>
-                  Answers submitted! Waiting for other players...
+                  {t('game.answersSubmitted')}
                 </div>
               )}
             </div>
@@ -933,17 +933,17 @@ export default function GameSessionPage() {
           {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
             <div className={styles.resultsSection}>
                 <h2 className={styles.sectionTitle}>
-                  Results
+                  {t('game.results')}
                 </h2>
                 <div className={styles.resultsTable}>
                   <table className={styles.answersTable}>
                     <thead>
                       <tr>
-                        <th className={styles.tableHeader}>Category</th>
+                        <th className={styles.tableHeader}>{t('game.category')}</th>
                         {players.map((player) => (
                           <th key={player.id} className={styles.tableHeader}>
                             {player.game_name || player.username}
-                            {player.user_id === room.host_id && <span className={styles.hostIcon}>Host</span>}
+                            {player.user_id === room.host_id && <span className={styles.hostIcon}>{t('host.host')}</span>}
                           </th>
                         ))}
                       </tr>
@@ -972,7 +972,7 @@ export default function GameSessionPage() {
                     </tbody>
                     <tfoot>
                       <tr className={styles.totalRow}>
-                        <td className={styles.totalCell}>Round/Total</td>
+                        <td className={styles.totalCell}>{t('game.roundTotal')}</td>
                         {players.map((player) => {
                           const totalPoints = getPlayerTotalPoints(player.id);
                           return (
@@ -996,7 +996,7 @@ export default function GameSessionPage() {
                 variant="playful"
                 size="small"
               >
-                Configure Rules
+                {t('game.configureRules')}
               </Button>
             )}
             <Button 
@@ -1011,14 +1011,14 @@ export default function GameSessionPage() {
               variant="warning"
               size="small"
             >
-              ← Back to Room
+              {t('game.backToRoom')}
             </Button>
           </div>
         </>
       ) : (
         <div className={styles.loadingState}>
-          <div className={styles.loadingSpinner}>Loading</div>
-          <p className={styles.loadingText}>Loading game session...</p>
+          <div className={styles.loadingSpinner}>{t('game.loading')}</div>
+          <p className={styles.loadingText}>{t('game.loadingGameSession')}</p>
         </div>
       )}
     </div>

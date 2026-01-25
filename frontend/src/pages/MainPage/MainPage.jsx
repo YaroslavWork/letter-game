@@ -213,6 +213,17 @@ export default function MainPage () {
                 />
             </div>
 
+            <div className={styles.settingsButtonContainer}>
+                <button 
+                    className={styles.settingsButton}
+                    onClick={() => navigate('/settings')}
+                    aria-label="Settings"
+                    title="Settings"
+                >
+                    ⚙️
+                </button>
+            </div>
+
             {hasStoredRoom && (
                 <ReconnectNotification
                     onReconnect={handleReconnect}
