@@ -881,6 +881,13 @@
   color: var(--text);
 }
 
+/* Return to Room Section */
+.returnToRoomSection {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 2px solid var(--border-muted);
+}
+
 /* Loading State */
 .loadingState {
   display: flex;

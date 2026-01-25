@@ -761,6 +761,24 @@ export default function GameSessionPage() {
                     </table>
                   </div>
                 </div>
+
+                {/* Return to Room Button */}
+                <div className={styles.returnToRoomSection}>
+                  <Button 
+                    onButtonClick={() => {
+                      const storedRoomType = localStorage.getItem('room_type');
+                      if (storedRoomType === 'host') {
+                        navigate('/host');
+                      } else {
+                        navigate('/join');
+                      }
+                    }}
+                    variant="playful"
+                    fullWidth
+                  >
+                    Return to Room
+                  </Button>
+                </div>
               </div>
             );
           })()}

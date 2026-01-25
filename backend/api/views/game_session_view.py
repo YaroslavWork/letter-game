@@ -104,6 +104,9 @@ class StartGameSessionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Delete all previous player answers for this game session
+        PlayerAnswer.objects.filter(game_session=game_session).delete()
+        
         # Reset game state for new game
         game_session.current_round = 1
         game_session.is_completed = False
