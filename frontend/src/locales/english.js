@@ -130,6 +130,8 @@ export const english = {
   'game.time': 'Time',
   'game.nextRound': 'Next Round',
   'game.advancing': 'Advancing...',
+  'game.seeResults': 'See Results',
+  'game.showingResults': 'Showing Results...',
   'game.players': 'Players',
   'game.submitted': 'Submitted',
   'game.categories': 'Categories',

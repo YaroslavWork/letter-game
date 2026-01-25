@@ -130,6 +130,8 @@ export const ukrainian = {
   'game.time': 'Час',
   'game.nextRound': 'Наступний раунд',
   'game.advancing': 'Перехід...',
+  'game.seeResults': 'Подивитися результати',
+  'game.showingResults': 'Відображення результатів...',
   'game.players': 'Гравці',
   'game.submitted': 'Відправлено',
   'game.categories': 'Категорії',

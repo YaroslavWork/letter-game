@@ -814,30 +814,68 @@ export default function GameSessionPage() {
                 </div>
               )}
 
-              {/* Next Round Button - Bottom (only show when results are showing and user is host) */}
-              {(showResults || allPlayersSubmitted) && isHost && gameSession.total_rounds > 1 && !gameSession.is_completed && (
+              {/* Next Round / See Results Button - Bottom (only show when results are showing and user is host) */}
+              {(showResults || allPlayersSubmitted) && isHost && !gameSession.is_completed && (
                 <div className={styles.nextRoundButtonCard}>
-                  <Button 
-                    onButtonClick={() => {
-                      advanceRoundMutation.mutate(roomId, {
-                        onSuccess: () => {
-                          refetchGameSession();
-                          refetchScores();
-                        },
-                        onError: (error) => {
-                          const errorMessage = error.response?.data?.error || 
-                                             error.response?.data?.detail ||
-                                             t('game.failedToAdvanceRound');
-                          showError(errorMessage);
-                        }
-                      });
-                    }}
-                    disabled={advanceRoundMutation.isPending}
-                    variant="playful"
-                    fullWidth
-                  >
-                    {advanceRoundMutation.isPending ? t('game.advancing') : t('game.nextRound')}
-                  </Button>
+                  {(() => {
+                    const isLastRound = gameSession.current_round === gameSession.total_rounds;
+                    const isSingleRound = gameSession.total_rounds === 1;
+                    const showSeeResults = isLastRound || isSingleRound;
+
+                    if (showSeeResults) {
+                      // See Results button for last round or single round - advance round to complete game
+                      return (
+                        <Button 
+                          onButtonClick={() => {
+                            // Advance round on last round will complete the game and show winner statistics
+                            advanceRoundMutation.mutate(roomId, {
+                              onSuccess: () => {
+                                refetchGameSession();
+                                refetchScores();
+                                // The game should now be completed and show winner statistics
+                              },
+                              onError: (error) => {
+                                const errorMessage = error.response?.data?.error || 
+                                                   error.response?.data?.detail ||
+                                                   t('game.failedToAdvanceRound');
+                                showError(errorMessage);
+                              }
+                            });
+                          }}
+                          disabled={advanceRoundMutation.isPending}
+                          variant="playful"
+                          fullWidth
+                        >
+                          {advanceRoundMutation.isPending ? t('game.showingResults') : t('game.seeResults')}
+                        </Button>
+                      );
+                    } else {
+                      // Next Round button for intermediate rounds
+                      return (
+                        <Button 
+                          onButtonClick={() => {
+                            advanceRoundMutation.mutate(roomId, {
+                              onSuccess: () => {
+                                refetchGameSession();
+                                refetchScores();
+                              },
+                              onError: (error) => {
+                                const errorMessage = error.response?.data?.error || 
+                                                   error.response?.data?.detail ||
+                                                   t('game.failedToAdvanceRound');
+                                showError(errorMessage);
+                              }
+                            });
+                          }}
+                          disabled={advanceRoundMutation.isPending}
+                          variant="playful"
+                          fullWidth
+                        >
+                          {advanceRoundMutation.isPending ? t('game.advancing') : t('game.nextRound')}
+                        </Button>
+                      );
+                    }
+                  })()}
                 </div>
               )}
             </div>

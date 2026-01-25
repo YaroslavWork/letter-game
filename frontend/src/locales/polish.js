@@ -130,6 +130,8 @@ export const polish = {
   'game.time': 'Czas',
   'game.nextRound': 'Następna runda',
   'game.advancing': 'Przechodzenie...',
+  'game.seeResults': 'Zobacz wyniki',
+  'game.showingResults': 'Wyświetlanie wyników...',
   'game.players': 'Gracze',
   'game.submitted': 'Przesłano',
   'game.categories': 'Kategorie',
