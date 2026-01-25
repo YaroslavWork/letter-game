@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useMutationJoinRoom, useMutationLeaveRoom } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import { Input } from '../../components/UI/Input/Input';
@@ -14,6 +15,7 @@ export default function JoinGamePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { error: showError, warning: showWarning } = useNotification();
+  const { t } = useLanguage();
   const [roomId, setRoomId] = useState('');
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -79,7 +81,7 @@ export default function JoinGamePage() {
       
       // If user was previously in room but now removed, redirect
       if (wasInRoom && !isUserStillInRoom) {
-        showWarning('You have been removed from the room by the host.');
+        showWarning(t('join.removedFromRoom'));
         wsClient.disconnect();
         // Clear stored room info
         localStorage.removeItem('room_id');
@@ -98,7 +100,7 @@ export default function JoinGamePage() {
       const currentUserId = String(user?.id);
       
       if (removedUserId === currentUserId) {
-        showWarning('You have been removed from the room by the host.');
+        showWarning(t('join.removedFromRoom'));
         wsClient.disconnect();
         // Clear stored room info
         localStorage.removeItem('room_id');
@@ -111,7 +113,7 @@ export default function JoinGamePage() {
       }
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
-      showError('The room has been deleted by the host.');
+      showError(t('join.roomDeletedByHost'));
       wsClient.disconnect();
       // Clear stored room info
       localStorage.removeItem('room_id');
@@ -178,7 +180,7 @@ export default function JoinGamePage() {
     setError('');
 
     if (!roomId.trim()) {
-      showWarning('Please enter a room ID');
+      showWarning(t('join.enterRoomId'));
       return;
     }
 
@@ -225,7 +227,7 @@ export default function JoinGamePage() {
             }
           }, 100);
         } else {
-          const errorMsg = 'Failed to join room. Invalid response.';
+          const errorMsg = t('join.failedToJoinInvalidResponse');
           setError('');
           showError(errorMsg);
         }
@@ -241,15 +243,15 @@ export default function JoinGamePage() {
             ? errorData.room_id[0] 
             : errorData.room_id;
           
-          // Check if it's a UUID format error
-          if (typeof roomIdError === 'string') {
-            const lowerError = roomIdError.toLowerCase();
-            if (lowerError.includes('invalid') || 
-                lowerError.includes('uuid') || 
-                lowerError.includes('format') ||
-                lowerError.includes('not a valid')) {
-              isUuidError = true;
-              errorMessage = 'Invalid room ID format. Please enter a valid UUID.';
+            // Check if it's a UUID format error
+            if (typeof roomIdError === 'string') {
+              const lowerError = roomIdError.toLowerCase();
+              if (lowerError.includes('invalid') || 
+                  lowerError.includes('uuid') || 
+                  lowerError.includes('format') ||
+                  lowerError.includes('not a valid')) {
+                isUuidError = true;
+                errorMessage = t('join.invalidRoomIdFormat');
             } else {
               errorMessage = roomIdError;
             }
@@ -261,7 +263,7 @@ export default function JoinGamePage() {
         } else if (errorData?.detail) {
           errorMessage = errorData.detail;
         } else {
-          errorMessage = 'Failed to join room. Please check the room ID.';
+          errorMessage = t('join.failedToJoinRoom');
         }
 
         // Clear error state (no longer using input field errors)
@@ -271,7 +273,7 @@ export default function JoinGamePage() {
         if (isUuidError || error.response?.status === 400 || error.response?.status === 404) {
           showError(errorMessage);
         } else if (error.response?.status >= 500) {
-          showError('Server error. Please try again later.');
+          showError(t('join.serverError'));
         } else {
           // Show error for any other status codes
           showError(errorMessage);
@@ -315,7 +317,7 @@ export default function JoinGamePage() {
         <div className={styles.decorativeCircle1}></div>
         <div className={styles.decorativeCircle2}></div>
         <div className={styles.joinContainer}>
-          <Header text="Join Game" variant="playful" />
+          <Header text={t('join.joinGame')} variant="playful" />
           
           <form onSubmit={handleJoinRoom} className={styles.joinForm}>
             <Input
@@ -326,7 +328,7 @@ export default function JoinGamePage() {
                 setRoomId(e.target.value);
                 setError('');
               }}
-              placeholder="Enter Room ID"
+              placeholder={t('join.roomIdPlaceholder')}
             />
             
             <Button 
@@ -335,7 +337,7 @@ export default function JoinGamePage() {
               variant="playful"
               fullWidth
             >
-              {joinRoomMutation.isPending ? 'Joining...' : 'Join Room'}
+              {joinRoomMutation.isPending ? t('join.joining') : t('join.joinRoom')}
             </Button>
           </form>
 
@@ -344,7 +346,7 @@ export default function JoinGamePage() {
             variant="warning"
             fullWidth
           >
-            ← Back to Home
+            {t('join.backToHome')}
           </Button>
         </div>
       </div>
@@ -357,19 +359,19 @@ export default function JoinGamePage() {
       <div className={styles.decorativeCircle2}></div>
       
       <div className={styles.headerSection}>
-        <Header text={`${room.name || 'Room'}`} variant="playful" />
+        <Header text={`${room.name || t('host.room')}`} variant="playful" />
       </div>
 
       <div className={styles.topSection}>
         {/* Players Tiles - Left Upper Corner */}
         <div className={styles.playersSection}>
           <h2 className={styles.sectionTitle}>
-            Players <span className={styles.count}>({players.length})</span>
+            {t('host.players')} <span className={styles.count}>({players.length})</span>
           </h2>
           <div className={styles.playersGrid}>
             {players.length === 0 ? (
               <div className={styles.emptyState}>
-                <p>No players yet</p>
+                <p>{t('join.noPlayersYet')}</p>
               </div>
             ) : (
               players.map((player) => (
@@ -385,7 +387,7 @@ export default function JoinGamePage() {
                       {player.game_name || player.username}
                     </p>
                     {player.user_id === room.host_id && (
-                      <span className={styles.hostBadge}>Host</span>
+                      <span className={styles.hostBadge}>{t('host.host')}</span>
                     )}
                   </div>
                 </div>
@@ -397,23 +399,23 @@ export default function JoinGamePage() {
         {/* Room Info - Right Corner */}
         <div className={styles.roomInfoSection}>
           <h2 className={styles.sectionTitle}>
-            Room Info
+            {t('host.roomInfo')}
           </h2>
           <div className={styles.roomInfoCard}>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Room ID</span>
+              <span className={styles.infoLabel}>{t('host.roomId')}</span>
               <span className={styles.infoValue}>{room.id}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Room Name</span>
-              <span className={styles.infoValue}>{room.name || 'Unnamed Room'}</span>
+              <span className={styles.infoLabel}>{t('host.roomName')}</span>
+              <span className={styles.infoValue}>{room.name || t('host.unnamedRoom')}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Host</span>
+              <span className={styles.infoLabel}>{t('host.host')}</span>
               <span className={styles.infoValue}>{room.host_game_name || room.host_username || 'Unknown'}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Total Players</span>
+              <span className={styles.infoLabel}>{t('host.totalPlayers')}</span>
               <span className={styles.infoValue}>{players.length}</span>
             </div>
           </div>
@@ -421,25 +423,25 @@ export default function JoinGamePage() {
           {gameSession && (
             <div className={styles.gameRulesCard}>
               <h3 className={styles.rulesTitle}>
-                Game Rules
+                {t('host.gameRules')}
               </h3>
               <div className={styles.ruleItem}>
-                <span className={styles.ruleLabel}>Letter:</span>
+                <span className={styles.ruleLabel}>{t('host.letter')}:</span>
                 <span className={styles.ruleValue}>
-                  {gameSession.final_letter || (gameSession.is_random_letter ? 'Random' : 'Not set')}
+                  {gameSession.final_letter || (gameSession.is_random_letter ? t('host.random') : t('host.notSet'))}
                 </span>
               </div>
               {gameSession.total_rounds && (
                 <div className={styles.ruleItem}>
-                  <span className={styles.ruleLabel}>Rounds:</span>
+                  <span className={styles.ruleLabel}>{t('host.rounds')}:</span>
                   <span className={styles.ruleValue}>
-                    {gameSession.total_rounds} {gameSession.total_rounds === 1 ? 'round' : 'rounds'}
+                    {gameSession.total_rounds} {gameSession.total_rounds === 1 ? t('host.round') : t('host.roundsPlural')}
                   </span>
                 </div>
               )}
               {gameSession.selected_types && gameSession.selected_types.length > 0 && (
                 <div className={styles.ruleItem}>
-                  <span className={styles.ruleLabel}>Types:</span>
+                  <span className={styles.ruleLabel}>{t('host.types')}:</span>
                   <div className={styles.typesList}>
                     {gameSession.selected_types_display?.map((type, index) => (
                       <span key={index} className={styles.typeTag}>
@@ -451,7 +453,7 @@ export default function JoinGamePage() {
               )}
               {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
                 <div className={styles.noRules}>
-                  <p>Game types not yet configured by host</p>
+                  <p>{t('join.gameRulesNotConfigured')}</p>
                 </div>
               )}
             </div>
@@ -460,10 +462,10 @@ export default function JoinGamePage() {
           {!gameSession && (
             <div className={styles.gameRulesCard}>
               <h3 className={styles.rulesTitle}>
-                Game Rules
+                {t('host.gameRules')}
               </h3>
                 <div className={styles.noRules}>
-                  <p>Game rules not yet configured by host</p>
+                  <p>{t('join.gameRulesNotConfiguredYet')}</p>
                 </div>
             </div>
           )}
@@ -477,7 +479,7 @@ export default function JoinGamePage() {
           variant="warning"
           fullWidth
         >
-          Leave Room
+          {t('join.leaveRoom')}
         </Button>
       </div>
     </div>

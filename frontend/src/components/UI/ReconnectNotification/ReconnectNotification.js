@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import Button from '../Button/Button';
 import styles from './ReconnectNotification.module.css';
 
@@ -7,6 +8,8 @@ export default function ReconnectNotification({
   onClose, 
   isReconnecting = false 
 }) {
+  const { t } = useLanguage();
+  
   return (
     <div className={styles.reconnectNotification}>
       <button 
@@ -19,8 +22,8 @@ export default function ReconnectNotification({
       <div className={styles.content}>
         <div className={styles.icon}>🔗</div>
         <div className={styles.text}>
-          <h3 className={styles.title}>Active Room Session</h3>
-          <p className={styles.message}>You have an active room session</p>
+          <h3 className={styles.title}>{t('reconnect.activeRoomSession')}</h3>
+          <p className={styles.message}>{t('reconnect.activeRoomMessage')}</p>
         </div>
       </div>
       <div className={styles.actions}>
@@ -30,7 +33,7 @@ export default function ReconnectNotification({
           variant="playful"
           size="small"
         >
-          {isReconnecting ? 'Reconnecting...' : 'Reconnect'}
+          {isReconnecting ? t('reconnect.reconnecting') : t('reconnect.reconnect')}
         </Button>
       </div>
     </div>

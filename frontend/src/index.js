@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ConfirmationProvider } from './contexts/ConfirmationContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 const queryClient = new QueryClient();
 
@@ -16,13 +17,15 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <NotificationProvider>
-            <ConfirmationProvider>
-              <App />
-            </ConfirmationProvider>
-          </NotificationProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <ConfirmationProvider>
+                <App />
+              </ConfirmationProvider>
+            </NotificationProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>

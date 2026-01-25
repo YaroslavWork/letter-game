@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useMutationCreateRoom, useMutationDeleteRoom, useMutationDeletePlayer, useMutationStartGameSession, useRoom } from '../../features/hooks/index.hooks';
 import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
@@ -17,6 +18,7 @@ export default function HostGamePage() {
   const { user, isAuthenticated } = useAuth();
   const { error: showError, warning: showWarning } = useNotification();
   const { confirm } = useConfirmation();
+  const { t } = useLanguage();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
   const [gameSession, setGameSession] = useState(null);
@@ -64,7 +66,7 @@ export default function HostGamePage() {
       }
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
-      showError('The room has been deleted.');
+      showError(t('host.roomDeleted'));
       wsClient.disconnect();
       // Clear stored room info
       localStorage.removeItem('room_id');
@@ -184,12 +186,12 @@ export default function HostGamePage() {
 
   const handleCreateRoom = () => {
     if (!roomName.trim()) {
-      setRoomNameError('Please enter a room name');
+      setRoomNameError(t('host.roomNameRequired'));
       return;
     }
 
     if (roomName.trim().length > 100) {
-      showWarning('Room name must be 100 characters or less');
+      showWarning(t('host.roomNameMaxLength'));
       setRoomNameError('');
       return;
     }
@@ -207,12 +209,12 @@ export default function HostGamePage() {
         if (roomData && roomData.id) {
           handleRoomCreated(roomData);
         } else {
-          showError('Failed to create room. Invalid response.');
+          showError(t('host.failedToCreateRoom'));
           roomCreatedRef.current = false;
           setIsConnecting(false);
         }
       } catch (error) {
-        showError('Failed to create room. Please try again.');
+        showError(t('host.failedToCreateRoom'));
         roomCreatedRef.current = false;
         setIsConnecting(false);
       }
@@ -225,10 +227,10 @@ export default function HostGamePage() {
     if (!room) return;
     
     const confirmed = await confirm({
-      title: 'Delete Room',
-      message: 'Are you sure you want to delete this room? This action cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t('host.deleteRoomTitle'),
+      message: t('host.deleteRoomMessage'),
+      confirmText: t('host.delete'),
+      cancelText: t('host.cancel'),
       confirmButtonStyle: 'danger',
     });
 
@@ -242,7 +244,7 @@ export default function HostGamePage() {
           navigate('/');
         },
         onError: () => {
-          showError('Failed to delete room. Please try again.');
+          showError(t('host.failedToDeleteRoom'));
         }
       });
     }
@@ -252,10 +254,10 @@ export default function HostGamePage() {
     if (!room) return;
     
     const confirmed = await confirm({
-      title: 'Remove Player',
-      message: 'Are you sure you want to remove this player from the room?',
-      confirmText: 'Remove',
-      cancelText: 'Cancel',
+      title: t('host.removePlayerTitle'),
+      message: t('host.removePlayerMessage'),
+      confirmText: t('host.remove'),
+      cancelText: t('host.cancel'),
       confirmButtonStyle: 'danger',
     });
 
@@ -264,7 +266,7 @@ export default function HostGamePage() {
         { roomId: room.id, playerId },
         {
           onError: () => {
-            showError('Failed to remove player. Please try again.');
+            showError(t('host.failedToRemovePlayer'));
           }
         }
       );
@@ -276,15 +278,15 @@ export default function HostGamePage() {
     
     // Check if game types are configured
     if (!gameSession || !gameSession.selected_types || gameSession.selected_types.length === 0) {
-      showWarning('Please configure game types before starting the game.');
+      showWarning(t('host.configureTypesBeforeStart'));
       return;
     }
     
     const confirmed = await confirm({
-      title: 'Start Game',
-      message: 'Are you sure you want to start the game? All players will be notified.',
-      confirmText: 'Start Game',
-      cancelText: 'Cancel',
+      title: t('host.startGameTitle'),
+      message: t('host.startGameMessage'),
+      confirmText: t('host.startGameConfirm'),
+      cancelText: t('host.cancel'),
       confirmButtonStyle: 'success',
     });
 
@@ -296,7 +298,7 @@ export default function HostGamePage() {
         onError: (error) => {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
-                             'Failed to start game. Please try again.';
+                             t('host.failedToStartGame');
           showError(errorMessage);
         }
       });
@@ -308,7 +310,7 @@ export default function HostGamePage() {
       <div className={styles.hostGamePage}>
         <div className={styles.loadingState}>
           <div className={styles.loadingSpinner}>Loading</div>
-          <p className={styles.loadingText}>Creating room...</p>
+          <p className={styles.loadingText}>{t('host.creatingRoom')}</p>
         </div>
       </div>
     );
@@ -320,10 +322,10 @@ export default function HostGamePage() {
         <div className={styles.decorativeCircle1}></div>
         <div className={styles.decorativeCircle2}></div>
         <div className={styles.errorState}>
-          <Header text="Host Game" variant="playful" />
+          <Header text={t('host.hostGame')} variant="playful" />
           <div className={styles.errorCard}>
             <span className={styles.errorIcon}>!</span>
-            <p className={styles.errorText}>Failed to create room</p>
+            <p className={styles.errorText}>{t('host.failedToCreateRoom')}</p>
           </div>
           <div className={styles.errorActions}>
             <Button 
@@ -335,7 +337,7 @@ export default function HostGamePage() {
               }}
               variant="playful"
             >
-              Try Again
+              {t('host.tryAgain')}
             </Button>
             <Button 
               onButtonClick={() => {
@@ -347,7 +349,7 @@ export default function HostGamePage() {
               }}
               variant="warning"
             >
-              Go Back
+              {t('host.goBack')}
             </Button>
           </div>
         </div>
@@ -361,10 +363,10 @@ export default function HostGamePage() {
         <div className={styles.decorativeCircle1}></div>
         <div className={styles.decorativeCircle2}></div>
         <div className={styles.errorState}>
-          <Header text="Host Game" variant="playful" />
+          <Header text={t('host.hostGame')} variant="playful" />
           <div className={styles.errorCard}>
             <span className={styles.errorIcon}>!</span>
-            <p className={styles.errorText}>Failed to create room. Please try again.</p>
+            <p className={styles.errorText}>{t('host.failedToCreateRoom')}</p>
           </div>
           <div className={styles.errorActions}>
             <Button 
@@ -376,7 +378,7 @@ export default function HostGamePage() {
               }}
               variant="playful"
             >
-              Try Again
+              {t('host.tryAgain')}
             </Button>
             <Button 
               onButtonClick={() => {
@@ -388,7 +390,7 @@ export default function HostGamePage() {
               }}
               variant="warning"
             >
-              Go Back
+              {t('host.goBack')}
             </Button>
           </div>
         </div>
@@ -402,7 +404,7 @@ export default function HostGamePage() {
         <div className={styles.decorativeCircle1}></div>
         <div className={styles.decorativeCircle2}></div>
         <div className={styles.createRoomContainer}>
-          <Header text="Host Game" variant="playful" />
+          <Header text={t('host.hostGame')} variant="playful" />
           <div className={styles.createRoomForm}>
             <Input
               type="text"
@@ -412,7 +414,7 @@ export default function HostGamePage() {
                 setRoomName(e.target.value);
                 setRoomNameError('');
               }}
-              placeholder="Enter room name (e.g., My Game Room)"
+              placeholder={t('host.roomNamePlaceholder')}
               error={roomNameError}
             />
             <Button 
@@ -421,14 +423,14 @@ export default function HostGamePage() {
               variant="playful"
               fullWidth
             >
-              {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
+              {createRoomMutation.isPending ? t('host.creating') : t('host.createRoom')}
             </Button>
             <Button 
               onButtonClick={() => navigate('/')}
               variant="warning"
               fullWidth
             >
-              ← Back
+              {t('host.back')}
             </Button>
           </div>
         </div>
@@ -442,19 +444,19 @@ export default function HostGamePage() {
       <div className={styles.decorativeCircle2}></div>
       
       <div className={styles.headerSection}>
-        <Header text={`${room.name || 'Room'}`} variant="playful" />
+        <Header text={`${room.name || t('host.room')}`} variant="playful" />
       </div>
 
       <div className={styles.topSection}>
         {/* Players Tiles - Left Upper Corner */}
         <div className={styles.playersSection}>
           <h2 className={styles.sectionTitle}>
-            Players <span className={styles.count}>({players.length})</span>
+            {t('host.players')} <span className={styles.count}>({players.length})</span>
           </h2>
           <div className={styles.playersGrid}>
             {players.length === 0 ? (
               <div className={styles.emptyState}>
-                <p>No players yet</p>
+                <p>{t('host.noPlayersYet')}</p>
               </div>
             ) : (
               players.map((player) => (
@@ -470,14 +472,14 @@ export default function HostGamePage() {
                       {player.game_name || player.username}
                     </p>
                     {player.user_id === room.host_id && (
-                      <span className={styles.hostBadge}>Host</span>
+                      <span className={styles.hostBadge}>{t('host.host')}</span>
                     )}
                   </div>
                   {player.user_id !== room.host_id && (
                     <button 
                       className={styles.removeButton}
                       onClick={() => handleDeletePlayer(player.id)}
-                      aria-label="Remove player"
+                      aria-label={t('host.removePlayer')}
                     >
                       ×
                     </button>
@@ -491,19 +493,19 @@ export default function HostGamePage() {
         {/* Room Info - Right Corner */}
         <div className={styles.roomInfoSection}>
           <h2 className={styles.sectionTitle}>
-            Room Info
+            {t('host.roomInfo')}
           </h2>
           <div className={styles.roomInfoCard}>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Room ID</span>
+              <span className={styles.infoLabel}>{t('host.roomId')}</span>
               <span className={styles.infoValue}>{room.id}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Room Name</span>
-              <span className={styles.infoValue}>{room.name || 'Unnamed Room'}</span>
+              <span className={styles.infoLabel}>{t('host.roomName')}</span>
+              <span className={styles.infoValue}>{room.name || t('host.unnamedRoom')}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Total Players</span>
+              <span className={styles.infoLabel}>{t('host.totalPlayers')}</span>
               <span className={styles.infoValue}>{players.length}</span>
             </div>
           </div>
@@ -511,25 +513,25 @@ export default function HostGamePage() {
           {gameSession && (
             <div className={styles.gameRulesCard}>
               <h3 className={styles.rulesTitle}>
-                Game Rules
+                {t('host.gameRules')}
               </h3>
               <div className={styles.ruleItem}>
-                <span className={styles.ruleLabel}>Letter:</span>
+                <span className={styles.ruleLabel}>{t('host.letter')}:</span>
                 <span className={styles.ruleValue}>
-                  {gameSession.final_letter || (gameSession.is_random_letter ? 'Random' : 'Not set')}
+                  {gameSession.final_letter || (gameSession.is_random_letter ? t('host.random') : t('host.notSet'))}
                 </span>
               </div>
               {gameSession.total_rounds && (
                 <div className={styles.ruleItem}>
-                  <span className={styles.ruleLabel}>Rounds:</span>
+                  <span className={styles.ruleLabel}>{t('host.rounds')}:</span>
                   <span className={styles.ruleValue}>
-                    {gameSession.total_rounds} {gameSession.total_rounds === 1 ? 'round' : 'rounds'}
+                    {gameSession.total_rounds} {gameSession.total_rounds === 1 ? t('host.round') : t('host.roundsPlural')}
                   </span>
                 </div>
               )}
               {gameSession.selected_types && gameSession.selected_types.length > 0 && (
                 <div className={styles.ruleItem}>
-                  <span className={styles.ruleLabel}>Types:</span>
+                  <span className={styles.ruleLabel}>{t('host.types')}:</span>
                   <div className={styles.typesList}>
                     {gameSession.selected_types_display?.map((type, index) => (
                       <span key={index} className={styles.typeTag}>
@@ -541,7 +543,7 @@ export default function HostGamePage() {
               )}
               {(!gameSession.selected_types || gameSession.selected_types.length === 0) && (
                 <div className={styles.noRules}>
-                  <p>No game types configured yet</p>
+                  <p>{t('host.noGameTypesConfigured')}</p>
                 </div>
               )}
             </div>
@@ -556,7 +558,7 @@ export default function HostGamePage() {
           variant="playful"
           fullWidth
         >
-          Configure Game Rules
+          {t('host.configureGameRules')}
         </Button>
         <Button 
           onButtonClick={handleStartGame}
@@ -564,7 +566,7 @@ export default function HostGamePage() {
           variant="success"
           fullWidth
         >
-          {startGameSessionMutation.isPending ? 'Starting...' : 'Start Game'}
+          {startGameSessionMutation.isPending ? t('host.starting') : t('host.startGame')}
         </Button>
         <div className={styles.secondaryActions}>
           <Button 
@@ -572,7 +574,7 @@ export default function HostGamePage() {
             variant="danger"
             size="small"
           >
-            Delete Room
+            {t('host.deleteRoom')}
           </Button>
           <Button 
             onButtonClick={() => {
@@ -584,7 +586,7 @@ export default function HostGamePage() {
             variant="warning"
             size="small"
           >
-            Leave
+            {t('host.leave')}
           </Button>
         </div>
       </div>

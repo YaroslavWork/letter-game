@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useMutationRegisterData } from '../../features/hooks/index.hooks';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { Input } from '../../components/UI/Input/Input';
 import Button from '../../components/UI/Button/Button';
 import Header from '../../components/UI/Header/Header';
@@ -20,6 +21,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
   const { success: showSuccess, error: showError } = useNotification();
+  const { t } = useLanguage();
 
   const { mutate, isPending, isError, error: apiError } = useMutationRegisterData();
 
@@ -44,20 +46,20 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.username) newErrors.username = "Username is required";
-    if (!formData.game_name) newErrors.game_name = "Game name is required";
+    if (!formData.username) newErrors.username = t('register.usernameRequired');
+    if (!formData.game_name) newErrors.game_name = t('register.gameNameRequired');
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('register.emailRequired');
     } else if (!isValidEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('register.invalidEmail');
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('register.passwordRequired');
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = t('register.passwordMinLength');
     }
     if (formData.password !== formData.repeatPassword) {
-      newErrors.repeatPassword = 'Passwords do not match';
+      newErrors.repeatPassword = t('register.passwordsDoNotMatch');
     }
 
     setErrors(newErrors);
@@ -75,7 +77,7 @@ export default function RegisterPage() {
 
       mutate(apiData, {
         onSuccess: () => {
-          showSuccess('Registration successful! Please log in.')
+          showSuccess(t('register.registrationSuccessful'))
           setFormData(initialState);
           navigate('/login');
         },
@@ -105,7 +107,7 @@ export default function RegisterPage() {
                 : errorData.non_field_errors;
             }
           } else {
-            const errorMessage = errorData?.detail || errorData?.message || error.message || 'Registration failed. Please try again.';
+            const errorMessage = errorData?.detail || errorData?.message || error.message || t('register.registrationFailed');
             newErrors.username = errorMessage;
             // Show notification for non-field-specific errors
             if (!errorData?.username && !errorData?.email && !errorData?.password && !errorData?.non_field_errors) {
@@ -125,14 +127,14 @@ export default function RegisterPage() {
       <div className={styles.decorativeCircle2}></div>
       <div className={styles.decorativeCircle3}></div>
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
-        <Header text={"Join the Fun! 🎯"} />
+        <Header text={t('register.joinFun')} />
 
         <Input 
           type="text" 
           name="username" 
           value={formData.username} 
           onChange={handleChange} 
-          placeholder="Username" 
+          placeholder={t('register.usernamePlaceholder')} 
           error={errors.username} 
         />
 
@@ -141,7 +143,7 @@ export default function RegisterPage() {
           name="game_name" 
           value={formData.game_name} 
           onChange={handleChange} 
-          placeholder="Game Name" 
+          placeholder={t('register.gameNamePlaceholder')} 
           error={errors.game_name} 
         />
 
@@ -150,7 +152,7 @@ export default function RegisterPage() {
           name="email" 
           value={formData.email} 
           onChange={handleChange} 
-          placeholder="Email" 
+          placeholder={t('register.emailPlaceholder')} 
           error={errors.email} 
         />
 
@@ -159,7 +161,7 @@ export default function RegisterPage() {
           name="password" 
           value={formData.password} 
           onChange={handleChange} 
-          placeholder="Password" 
+          placeholder={t('register.passwordPlaceholder')} 
           error={errors.password} 
         />
 
@@ -168,7 +170,7 @@ export default function RegisterPage() {
           name="repeatPassword" 
           value={formData.repeatPassword} 
           onChange={handleChange} 
-          placeholder="Repeat Password" 
+          placeholder={t('register.repeatPasswordPlaceholder')} 
           error={errors.repeatPassword} 
         />
 
@@ -178,12 +180,12 @@ export default function RegisterPage() {
           variant="playful"
           fullWidth
         >
-          {isPending ? 'Registering...' : 'Create Account'}
+          {isPending ? t('register.registering') : t('register.createAccount')}
         </Button>
 
         <div className={styles.loginLink}>
           <Link to="/login">
-            Already have an account? Login here
+            {t('register.alreadyHaveAccount')}
           </Link>
         </div>
       </form>

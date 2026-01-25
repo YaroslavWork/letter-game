@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
@@ -13,6 +14,7 @@ export default function GameSessionPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { error: showError, success: showSuccess, warning: showWarning } = useNotification();
+  const { t } = useLanguage();
   const { roomId } = useParams();
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -111,7 +113,7 @@ export default function GameSessionPage() {
       }
       refetchScores();
     } else if (data.type === 'room_deleted_notification') {
-      showError('The room has been deleted.');
+      showError(t('game.roomNotFound'));
       wsClient.disconnect();
       localStorage.removeItem('room_id');
       localStorage.removeItem('room_type');
@@ -149,13 +151,13 @@ export default function GameSessionPage() {
       const errorData = roomError.response?.data;
       
       if (errorStatus === 404) {
-        showError('Room not found. The room may have been deleted or the room ID is invalid.');
+        showError(t('game.roomNotFound'));
         navigate('/');
       } else if (errorStatus === 400) {
         const errorMessage = errorData?.room_id?.[0] || 
                            errorData?.error || 
                            errorData?.detail ||
-                           'Invalid room ID format.';
+                           t('game.invalidRoomIdFormat');
         showError(errorMessage);
         navigate('/');
       }
@@ -388,14 +390,14 @@ export default function GameSessionPage() {
           setIsSubmitted(true);
           refetchScores();
           // Show notification that auto-submit happened
-          showWarning('Time is up! Your answers have been automatically submitted.');
+          showWarning(t('game.timeUpAutoSubmitted'));
         },
         onError: (error) => {
           // Reset auto-submitted flag on error so user can try again
           autoSubmittedRef.current = false;
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
-                             'Failed to auto-submit answers. Please submit manually.';
+                             t('game.failedToAutoSubmit');
           showError(errorMessage);
         }
       }
@@ -447,7 +449,7 @@ export default function GameSessionPage() {
   if (isLoadingRoom || !room) {
     return (
       <div className={styles.gameSessionPage}>
-        <Text text="Loading game session..." />
+        <Text text={t('game.loadingGameSession')} />
       </div>
     );
   }
@@ -456,7 +458,7 @@ export default function GameSessionPage() {
   if (isFirstLoad) {
     return (
       <div className={styles.gameSessionPage}>
-        <Text text="Loading game data..." />
+        <Text text={t('game.loadingGameData')} />
       </div>
     );
   }
@@ -510,14 +512,14 @@ export default function GameSessionPage() {
     }));
     
     // Validate that the word starts with the game letter (case-insensitive)
-    if (letter && value.trim().length > 0) {
-      const firstChar = value.trim()[0].toUpperCase();
-      if (firstChar !== letter) {
-        // Show error but allow typing
-        setValidationErrors(prev => ({
-          ...prev,
-          [gameType]: `Word must start with the letter "${letter}"`
-        }));
+      if (letter && value.trim().length > 0) {
+        const firstChar = value.trim()[0].toUpperCase();
+        if (firstChar !== letter) {
+          // Show error but allow typing
+          setValidationErrors(prev => ({
+            ...prev,
+            [gameType]: t('game.wordMustStartWith', { letter })
+          }));
       } else {
         // Clear error if validation passes
         setValidationErrors(prev => {
@@ -542,7 +544,7 @@ export default function GameSessionPage() {
     // Check for validation errors
     const hasErrors = Object.keys(validationErrors).length > 0;
     if (hasErrors) {
-      showError('Please fix validation errors before submitting. All words must start with the game letter or be left empty.');
+      showError(t('game.fixValidationErrors'));
       return;
     }
 
@@ -560,7 +562,7 @@ export default function GameSessionPage() {
     });
 
     if (invalidAnswers.length > 0) {
-      showError('Some answers do not start with the correct letter. Please fix them before submitting.');
+      showError(t('game.someAnswersInvalid'));
       return;
     }
 
@@ -575,12 +577,12 @@ export default function GameSessionPage() {
         onSuccess: () => {
           setIsSubmitted(true);
           refetchScores();
-          showSuccess('Answers submitted successfully!');
+          showSuccess(t('game.answersSubmittedSuccessfully'));
         },
         onError: (error) => {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
-                             'Failed to submit answers. Please try again.';
+                             t('game.failedToSubmitAnswers');
           showError(errorMessage);
         }
       }
@@ -825,7 +827,7 @@ export default function GameSessionPage() {
                         onError: (error) => {
                           const errorMessage = error.response?.data?.error || 
                                              error.response?.data?.detail ||
-                                             'Failed to advance round. Please try again.';
+                                             t('game.failedToAdvanceRound');
                           showError(errorMessage);
                         }
                       });

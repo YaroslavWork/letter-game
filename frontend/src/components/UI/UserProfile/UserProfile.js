@@ -1,7 +1,9 @@
 import React from 'react';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './UserProfile.module.css';
 
 export default function UserProfile({ user, onLogout }) {
+  const { t } = useLanguage();
   if (!user) return null;
 
   const getInitials = (name) => {
@@ -26,7 +28,7 @@ export default function UserProfile({ user, onLogout }) {
     return colors[index];
   };
 
-  const gameName = user.game_name || user.username || 'Player';
+  const gameName = user.game_name || user.username || t('userProfile.player');
   const initials = getInitials(gameName);
   const avatarColor = getAvatarColor(gameName);
 
@@ -52,7 +54,7 @@ export default function UserProfile({ user, onLogout }) {
           onClick={onLogout}
           aria-label="Logout"
         >
-          <span>Logout</span>
+          <span>{t('userProfile.logout')}</span>
         </button>
       )}
     </div>

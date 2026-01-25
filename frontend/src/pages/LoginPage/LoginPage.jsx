@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useMutationLoginData } from '../../features/hooks/index.hooks';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { Input } from '../../components/UI/Input/Input';
 import Button from '../../components/UI/Button/Button';
 import Header from '../../components/UI/Header/Header';
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading } = useAuth();
   const { error: showError } = useNotification();
+  const { t } = useLanguage();
   const { mutate, isPending, isError, error: apiError } = useMutationLoginData();
 
   useEffect(() => {
@@ -47,8 +49,8 @@ export default function LoginPage() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.username) newErrors.username = "Username or email is required";
-    if (!formData.password) newErrors.password = 'Password is required';
+    if (!formData.username) newErrors.username = t('login.usernameRequired');
+    if (!formData.password) newErrors.password = t('login.passwordRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -66,7 +68,7 @@ export default function LoginPage() {
             const responseData = response?.data || response;
             
             if (!responseData || !responseData.access || !responseData.refresh) {
-              showError('Invalid response from server. Please try again.');
+              showError(t('login.invalidResponse'));
               return;
             }
 
@@ -75,23 +77,23 @@ export default function LoginPage() {
             
             navigate('/');
           } catch (error) {
-            showError('Error processing login response. Please try again.');
+            showError(t('login.errorProcessing'));
           }
         },
         onError: (error) => {
           if (error.response?.status === 401) {
             setErrors({ 
-              password: 'Incorrect password',
-              username: 'Incorrect username or email'
+              password: t('login.incorrectPassword'),
+              username: t('login.incorrectUsername')
             });
           } else if (error.response?.status === 400) {
             const errorData = error.response?.data;
             setErrors({
-              username: errorData?.username?.[0] || errorData?.non_field_errors?.[0] || 'Invalid username or email',
-              password: errorData?.password?.[0] || 'Invalid password'
+              username: errorData?.username?.[0] || errorData?.non_field_errors?.[0] || t('login.invalidUsername'),
+              password: errorData?.password?.[0] || t('login.invalidPassword')
             });
           } else {
-            const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Login failed. Please try again.';
+            const errorMessage = error.response?.data?.detail || error.response?.data?.message || t('login.loginFailed');
             setErrors({
               username: errorMessage,
               password: errorMessage
@@ -113,14 +115,14 @@ export default function LoginPage() {
       <div className={styles.decorativeCircle1}></div>
       <div className={styles.decorativeCircle2}></div>
       <form onSubmit={handleSubmit} noValidate className={styles.form} action="#" method="post">
-        <Header text={"Welcome Back!"} />
+        <Header text={t('login.welcome')} />
 
         <Input 
           type="text" 
           name="username" 
           value={formData.username} 
           onChange={handleChange} 
-          placeholder="Username or Email"
+          placeholder={t('login.usernamePlaceholder')}
           error={errors.username} 
         />
 
@@ -129,7 +131,7 @@ export default function LoginPage() {
           name="password" 
           value={formData.password} 
           onChange={handleChange} 
-          placeholder="Password"
+          placeholder={t('login.passwordPlaceholder')}
           error={errors.password} 
         />
 
@@ -139,12 +141,12 @@ export default function LoginPage() {
           variant="playful"
           fullWidth
         >
-          {isPending ? 'Logging in...' : 'Login'}
+          {isPending ? t('login.loggingIn') : t('login.login')}
         </Button>
 
         <div className={styles.registerLink}>
           <Link to="/register">
-            Don't have an account? Register here
+            {t('login.noAccount')}
           </Link>
         </div>
       </form>

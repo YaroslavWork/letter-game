@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useRoom, useGameTypes, useGameSession, useMutationUpdateGameSession } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
@@ -16,6 +17,7 @@ export default function HostGameRulePage() {
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const { success: showSuccess, error: showError, warning: showWarning } = useNotification();
+  const { t } = useLanguage();
   const { roomId } = useParams();
   const [letter, setLetter] = useState('');
   const [isRandomLetter, setIsRandomLetter] = useState(true);
@@ -51,7 +53,7 @@ export default function HostGameRulePage() {
       // Do NOT navigate - stay on the configuration page
     } else if (data.type === 'room_deleted_notification') {
       // Room was deleted by host
-      showError('The room has been deleted.');
+      showError(t('hostRules.roomDeleted'));
       wsClient.disconnect();
       // Clear stored room info
       localStorage.removeItem('room_id');
@@ -102,14 +104,14 @@ export default function HostGameRulePage() {
       const errorData = roomError.response?.data;
       
       if (errorStatus === 404) {
-        showError('Room not found. The room may have been deleted or the room ID is invalid.');
+        showError(t('hostRules.roomNotFound'));
         navigate('/');
         return;
       } else if (errorStatus === 400) {
         const errorMessage = errorData?.room_id?.[0] || 
                            errorData?.error || 
                            errorData?.detail ||
-                           'Invalid room ID format.';
+                           t('hostRules.invalidRoomIdFormat');
         showError(errorMessage);
         navigate('/');
         return;
@@ -181,32 +183,32 @@ export default function HostGameRulePage() {
     } else {
       // Single round: validate letter
       if (!isRandomLetter && !letter) {
-        showWarning('Please enter a letter or select random letter');
+        showWarning(t('hostRules.enterLetterOrRandom'));
         setError('');
         return;
       }
     }
 
     if (selectedTypes.length === 0) {
-      showWarning('Please select at least one game type');
+      showWarning(t('hostRules.selectAtLeastOneType'));
       setError('');
       return;
     }
 
     if (totalRounds < 1 || totalRounds > 10) {
-      showWarning('Number of rounds must be between 1 and 10');
+      showWarning(t('hostRules.roundsBetween1And10'));
       setError('');
       return;
     }
 
     if (roundTimerSeconds < 10 || roundTimerSeconds > 600) {
-      showWarning('Timer duration must be between 10 and 600 seconds');
+      showWarning(t('hostRules.timerBetween10And600'));
       setError('');
       return;
     }
 
     if (reduceTimerOnCompleteSeconds < 5 || reduceTimerOnCompleteSeconds > 300) {
-      showWarning('Reduce timer duration must be between 5 and 300 seconds');
+      showWarning(t('hostRules.reduceTimerBetween5And300'));
       setError('');
       return;
     }
@@ -245,12 +247,12 @@ export default function HostGameRulePage() {
           
           // Clear any errors and show success message
           setError('');
-          showSuccess('Game rules saved successfully!');
+          showSuccess(t('hostRules.gameRulesSavedSuccessfully'));
         },
         onError: (error) => {
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
-                             'Failed to update game rules. Please try again.';
+                             t('hostRules.failedToUpdateRules');
           setError('');
           showError(errorMessage);
         }
@@ -262,7 +264,7 @@ export default function HostGameRulePage() {
     return (
       <div className={styles.hostGameRulePage}>
         <div className={styles.loadingContainer}>
-          <Text text="Loading game rules..." />
+          <Text text={t('hostRules.loadingGameRules')} />
         </div>
       </div>
     );
@@ -278,16 +280,16 @@ export default function HostGameRulePage() {
       
       <div className={styles.container}>
         <div className={styles.headerSection}>
-          <Header text="Configure Game Rules" variant="playful" />
+          <Header text={t('hostRules.configureGameRules')} variant="playful" />
         </div>
         
         <div className={styles.roomInfo}>
           <div className={styles.roomInfoText}>
-            <strong>Room ID:</strong> {roomId}
+            <strong>{t('hostRules.roomId')}</strong> {roomId}
           </div>
           {room && (
             <div className={styles.roomInfoText}>
-              <strong>Room Name:</strong> {room.name || 'N/A'}
+              <strong>{t('hostRules.roomName')}</strong> {room.name || t('hostRules.notAvailable')}
             </div>
           )}
         </div>
@@ -296,10 +298,10 @@ export default function HostGameRulePage() {
         <div className={styles.configGrid}>
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <Header text="Number of Rounds" />
+              <Header text={t('hostRules.numberOfRounds')} />
             </div>
             <div className={styles.roundsSection}>
-              <Text text="Rounds:" />
+              <Text text={t('hostRules.rounds')} />
               <div className={styles.roundsInputWrapper}>
                 <input
                   type="number"
@@ -314,17 +316,17 @@ export default function HostGameRulePage() {
                   max="10"
                   className={styles.roundsInput}
                 />
-                <span className={styles.roundsHint}>(random letter each)</span>
+                <span className={styles.roundsHint}>{t('hostRules.randomLetterEach')}</span>
               </div>
             </div>
           </div>
 
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <Header text="Round Timer" />
+              <Header text={t('hostRules.roundTimer')} />
             </div>
             <div className={styles.roundsSection}>
-              <Text text="Duration:" />
+              <Text text={t('hostRules.duration')} />
               <div className={styles.roundsInputWrapper}>
                 <input
                   type="number"
@@ -339,7 +341,7 @@ export default function HostGameRulePage() {
                   max="600"
                   className={styles.roundsInput}
                 />
-                <Text text="sec" />
+                <Text text={t('hostRules.sec')} />
                 <span className={styles.roundsHint}>
                   ({Math.floor(roundTimerSeconds / 60)}m {roundTimerSeconds % 60}s)
                 </span>
@@ -349,10 +351,10 @@ export default function HostGameRulePage() {
 
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <Header text="Reduce Timer on Complete" />
+              <Header text={t('hostRules.reduceTimerOnComplete')} />
             </div>
             <div className={styles.roundsSection}>
-              <Text text="Reduce to:" />
+              <Text text={t('hostRules.reduceTo')} />
               <div className={styles.roundsInputWrapper}>
                 <input
                   type="number"
@@ -367,9 +369,9 @@ export default function HostGameRulePage() {
                   max="300"
                   className={styles.roundsInput}
                 />
-                <Text text="sec" />
+                <Text text={t('hostRules.sec')} />
                 <span className={styles.roundsHint}>
-                  (if time &gt; {reduceTimerOnCompleteSeconds}s)
+                  {t('hostRules.ifTimeGreaterThan', { seconds: reduceTimerOnCompleteSeconds })}
                 </span>
               </div>
             </div>
@@ -378,7 +380,7 @@ export default function HostGameRulePage() {
           {totalRounds === 1 ? (
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
-                <Header text="Choose Letter" />
+                <Header text={t('hostRules.chooseLetter')} />
               </div>
               <div className={styles.letterSection}>
                 <label className={styles.checkboxLabel}>
@@ -388,17 +390,17 @@ export default function HostGameRulePage() {
                     onChange={handleRandomLetterToggle}
                     className={styles.checkbox}
                   />
-                  <Text text="Random Letter" />
+                  <Text text={t('hostRules.randomLetter')} />
                 </label>
                 
                 {!isRandomLetter && (
                   <div className={styles.letterInput}>
-                    <span className={styles.letterInputLabel}>Enter Letter:</span>
+                    <span className={styles.letterInputLabel}>{t('hostRules.enterLetter')}</span>
                     <input
                       type="text"
                       value={letter}
                       onChange={handleLetterChange}
-                      placeholder="A-Z"
+                      placeholder={t('hostRules.enterLetterPlaceholder')}
                       maxLength={1}
                       className={styles.letterInputField}
                     />
@@ -414,7 +416,7 @@ export default function HostGameRulePage() {
         {/* Game Types Section - Full Width Below Grid */}
         <div className={`${styles.section} ${styles.typesSection}`}>
           <div className={styles.sectionHeader}>
-            <Header text="Select Game Types" />
+            <Header text={t('hostRules.selectGameTypes')} />
           </div>
           <div className={styles.typesList}>
             {gameTypes.map((type) => (
@@ -443,14 +445,14 @@ export default function HostGameRulePage() {
             variant="playful"
             fullWidth
           >
-            {updateGameSessionMutation.isPending ? 'Saving...' : 'Save Rules'}
+            {updateGameSessionMutation.isPending ? t('hostRules.saving') : t('hostRules.saveRules')}
           </Button>
           <Button 
             onButtonClick={() => navigate(`/host`)}
             variant="primary"
             fullWidth
           >
-            Back to Room
+            {t('hostRules.backToRoom')}
           </Button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useRoom } from '../../features/hooks/index.hooks';
 import { axios } from '../../lib/axios';
 import { wsClient } from '../../lib/websocket';
@@ -17,6 +18,7 @@ export default function MainPage () {
     const navigate = useNavigate();
     const { user, isAuthenticated, isLoading, logout } = useAuth();
     const { error: showError, warning: showWarning } = useNotification();
+    const { t } = useLanguage();
     const [hasStoredRoom, setHasStoredRoom] = useState(false);
     const [isReconnecting, setIsReconnecting] = useState(false);
 
@@ -54,7 +56,7 @@ export default function MainPage () {
         const token = localStorage.getItem('access_token');
 
         if (!roomId || !roomType || !token) {
-            showWarning('No room information found. Please host or join a room first.');
+            showWarning(t('main.noRoomInfo'));
             // Clear invalid room info
             localStorage.removeItem('room_id');
             localStorage.removeItem('room_type');
@@ -122,7 +124,7 @@ export default function MainPage () {
             isHandled = true;
             setIsReconnecting(false);
             cleanup();
-            showError('Failed to reconnect to the room. The room may no longer exist.');
+            showError(t('main.reconnectFailed'));
             // Clear invalid room info
             localStorage.removeItem('room_id');
             localStorage.removeItem('room_type');
@@ -135,7 +137,7 @@ export default function MainPage () {
                 isHandled = true;
                 setIsReconnecting(false);
                 cleanup();
-                showError('Failed to reconnect to the room. The room may no longer exist.');
+                showError(t('main.reconnectFailed'));
                 // Clear invalid room info
                 localStorage.removeItem('room_id');
                 localStorage.removeItem('room_type');
@@ -156,7 +158,7 @@ export default function MainPage () {
                 isHandled = true;
                 setIsReconnecting(false);
                 cleanup();
-                showWarning('Connection timeout. Please try again.');
+                showWarning(t('main.connectionTimeout'));
             }
         }, 5000);
     };
@@ -181,13 +183,13 @@ export default function MainPage () {
     if (isLoading) {
         return (
             <div className={styles.mainPage}>
-                <Text text="Loading..." />
+                <Text text={t('main.loading')} />
             </div>
         );
     }
 
     if (!isAuthenticated) {
-        return <div>You are not logged in</div>;
+        return <div>{t('main.notLoggedIn')}</div>;
     }
 
     return (
@@ -196,7 +198,7 @@ export default function MainPage () {
             <div className={styles.decorativeCircle2}></div>
             
             <div className={styles.titleSection}>
-                <Header text="Letter Game" />
+                <Header text={t('main.letterGame')} />
             </div>
 
             <div className={styles.contentContainer}>

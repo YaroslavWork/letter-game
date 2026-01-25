@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './MenuBar.module.css';
 
 export default function MenuBar({ onHostClick, onJoinClick }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleHost = () => {
     if (onHostClick) {
@@ -27,13 +29,13 @@ export default function MenuBar({ onHostClick, onJoinClick }) {
         className={`${styles.menuItem} ${styles.hostItem}`}
         onClick={handleHost}
       >
-        <span className={styles.menuText}>Host Game</span>
+        <span className={styles.menuText}>{t('menu.hostGame')}</span>
       </button>
       <button 
         className={`${styles.menuItem} ${styles.joinItem}`}
         onClick={handleJoin}
       >
-        <span className={styles.menuText}>Join Game</span>
+        <span className={styles.menuText}>{t('menu.joinGame')}</span>
       </button>
     </div>
   );
