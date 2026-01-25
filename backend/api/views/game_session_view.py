@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from datetime import timedelta
 import random
 import string
 from ..models import Room, GameSession, RoomPlayer, PlayerAnswer, GAME_TYPE_CHOICES
@@ -307,6 +308,32 @@ class SubmitAnswerView(APIView):
                 'points': 0  # Will be recalculated
             }
         )
+        
+        # Check if player completed all categories and reduce timer if needed
+        if game_session.round_start_time and game_session.selected_types:
+            # Check if player has non-empty answers for all selected types
+            completed_all_categories = True
+            for game_type in game_session.selected_types:
+                answer = validated_answers.get(game_type, "")
+                if not answer or not isinstance(answer, str) or not answer.strip():
+                    completed_all_categories = False
+                    break
+            
+            if completed_all_categories:
+                # Calculate remaining time
+                elapsed_time = (timezone.now() - game_session.round_start_time).total_seconds()
+                remaining_time = game_session.round_timer_seconds - elapsed_time
+                reduce_timer_seconds = game_session.reduce_timer_on_complete_seconds
+                
+                # Only reduce timer if remaining time is greater than reduce_timer_seconds
+                if remaining_time > reduce_timer_seconds:
+                    # Update round_start_time to make timer end in reduce_timer_seconds
+                    # New start time = now - (round_timer_seconds - reduce_timer_seconds)
+                    new_start_time = timezone.now() - timedelta(seconds=game_session.round_timer_seconds - reduce_timer_seconds)
+                    game_session.round_start_time = new_start_time
+                    game_session.save()
+                    # Broadcast room update to notify all clients of timer change
+                    broadcast_room_update(room)
         
         # Check if all players have submitted for current round
         room_players = RoomPlayer.objects.filter(room=room)

@@ -22,6 +22,7 @@ export default function HostGameRulePage() {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [totalRounds, setTotalRounds] = useState(1);
   const [roundTimerSeconds, setRoundTimerSeconds] = useState(60);
+  const [reduceTimerOnCompleteSeconds, setReduceTimerOnCompleteSeconds] = useState(15);
   const [error, setError] = useState('');
 
   const { data: roomData, isLoading: isLoadingRoom, error: roomError } = useRoom(roomId);
@@ -45,6 +46,7 @@ export default function HostGameRulePage() {
         setSelectedTypes(session.selected_types || []);
         setTotalRounds(session.total_rounds || 1);
         setRoundTimerSeconds(session.round_timer_seconds || 60);
+        setReduceTimerOnCompleteSeconds(session.reduce_timer_on_complete_seconds || 15);
       }
       // Do NOT navigate - stay on the configuration page
     } else if (data.type === 'room_deleted_notification') {
@@ -83,6 +85,7 @@ export default function HostGameRulePage() {
         setSelectedTypes(session.selected_types || []);
         setTotalRounds(session.total_rounds || 1);
         setRoundTimerSeconds(session.round_timer_seconds || 60);
+        setReduceTimerOnCompleteSeconds(session.reduce_timer_on_complete_seconds || 15);
       }
     }
   }, [gameSessionData]);
@@ -202,11 +205,18 @@ export default function HostGameRulePage() {
       return;
     }
 
+    if (reduceTimerOnCompleteSeconds < 5 || reduceTimerOnCompleteSeconds > 300) {
+      showWarning('Reduce timer duration must be between 5 and 300 seconds');
+      setError('');
+      return;
+    }
+
     const updateData = {
       is_random_letter: totalRounds > 1 ? true : isRandomLetter,
       selected_types: selectedTypes,
       total_rounds: totalRounds,
       round_timer_seconds: roundTimerSeconds,
+      reduce_timer_on_complete_seconds: reduceTimerOnCompleteSeconds,
     };
 
     if (totalRounds === 1 && !isRandomLetter && letter) {
@@ -225,6 +235,7 @@ export default function HostGameRulePage() {
             setSelectedTypes(sessionData.selected_types || []);
             setTotalRounds(sessionData.total_rounds || 1);
             setRoundTimerSeconds(sessionData.round_timer_seconds || 60);
+            setReduceTimerOnCompleteSeconds(sessionData.reduce_timer_on_complete_seconds || 15);
           }
           
           // Invalidate and refetch queries to ensure UI is up to date
@@ -307,6 +318,27 @@ export default function HostGameRulePage() {
             style={{ width: '100px', textAlign: 'center' }}
           />
           <Text text={`(${Math.floor(roundTimerSeconds / 60)} minutes ${roundTimerSeconds % 60} seconds)`} />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <Header text="Reduce Timer on Complete" />
+        <div className={styles.roundsSection}>
+          <Text text="When a player completes all categories, reduce timer to (in seconds):" />
+          <Input
+            type="number"
+            value={reduceTimerOnCompleteSeconds}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 15;
+              if (value >= 5 && value <= 300) {
+                setReduceTimerOnCompleteSeconds(value);
+              }
+            }}
+            min="5"
+            max="300"
+            style={{ width: '100px', textAlign: 'center' }}
+          />
+          <Text text={`Timer will only be reduced if remaining time is greater than ${reduceTimerOnCompleteSeconds} seconds`} />
         </div>
       </div>
 

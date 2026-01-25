@@ -11,7 +11,7 @@ class GameSessionSerializer(serializers.ModelSerializer):
         fields = ('id', 'letter', 'is_random_letter', 'selected_types', 
                   'selected_types_display', 'final_letter', 'total_rounds', 
                   'current_round', 'is_completed', 'round_letters', 'round_advance_scheduled', 
-                  'round_timer_seconds', 'round_start_time', 'created_at', 'updated_at')
+                  'round_timer_seconds', 'reduce_timer_on_complete_seconds', 'round_start_time', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at', 'round_start_time')
     
     def get_selected_types_display(self, obj):
@@ -57,7 +57,7 @@ class UpdateGameSessionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = GameSession
-        fields = ('letter', 'is_random_letter', 'selected_types', 'total_rounds', 'round_timer_seconds')
+        fields = ('letter', 'is_random_letter', 'selected_types', 'total_rounds', 'round_timer_seconds', 'reduce_timer_on_complete_seconds')
     
     def validate_letter(self, value):
         """Validate that letter is a single uppercase letter."""
@@ -88,4 +88,12 @@ class UpdateGameSessionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Timer duration must be at least 10 seconds.")
         if value > 600:
             raise serializers.ValidationError("Timer duration must be at most 600 seconds (10 minutes).")
+        return value
+    
+    def validate_reduce_timer_on_complete_seconds(self, value):
+        """Validate that reduce timer seconds is between 5 and 300 seconds."""
+        if value < 5:
+            raise serializers.ValidationError("Reduce timer duration must be at least 5 seconds.")
+        if value > 300:
+            raise serializers.ValidationError("Reduce timer duration must be at most 300 seconds (5 minutes).")
         return value
