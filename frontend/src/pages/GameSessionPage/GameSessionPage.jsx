@@ -61,16 +61,22 @@ export default function GameSessionPage() {
               setPreviousRoundScores(currentPlayerScores);
               setPreviousRoundNumber(oldRound);
             }
-            // Round advanced, reset state but keep showResults true so joiners can see results
+            // Round advanced, reset state for new round
             setIsSubmitted(false);
             setAnswers({});
             setValidationErrors({});
             setSubmittedPlayers(new Set());
+            // Reset showResults to show categories again for the new round
+            setShowResults(false);
             // Reset auto-submit flag for new round
             autoSubmittedRef.current = false;
-            // Don't reset showResults here - keep it true so results remain visible
-            // It will be reset when user starts submitting for the new round
-            // Don't refetch scores immediately - keep showing previous round's results
+            // Clear previous round scores after a brief delay to allow transition
+            setTimeout(() => {
+              setPreviousRoundScores(null);
+              setPreviousRoundNumber(null);
+            }, 1000);
+            // Refetch scores for the new round
+            refetchScores();
           } else {
             // Round didn't advance, refetch scores normally
             refetchScores();
@@ -337,11 +343,17 @@ export default function GameSessionPage() {
         setAnswers({});
         setValidationErrors({});
         setSubmittedPlayers(new Set());
+        // Reset showResults to show categories again for the new round
+        setShowResults(false);
         // Reset auto-submit flag for new round
         autoSubmittedRef.current = false;
-        // Don't reset showResults here - keep it true so results remain visible
-        // It will be reset when user starts submitting for the new round
-        // Don't refetch scores immediately - keep showing previous round's results
+        // Clear previous round scores after a brief delay to allow transition
+        setTimeout(() => {
+          setPreviousRoundScores(null);
+          setPreviousRoundNumber(null);
+        }, 1000);
+        // Refetch scores for the new round
+        refetchScores();
       }
       
       prevRoundRef.current = currentRound;
@@ -596,12 +608,10 @@ export default function GameSessionPage() {
 
   return (
     <div className={styles.gameSessionPage}>
-      <Header text={room ? `Game Session - ${room.name}` : "Game Session"} />
-      
       {gameSession && gameSession.is_completed ? (
         // Game completed - show winner and statistics
         <div className={styles.gameCompleted}>
-          <Header text="🎉 Game Completed! 🎉" />
+          <Header text="🎉 Game Completed! 🎉" variant="playful" />
           {(() => {
             // Get total scores from API response if available
             const totalScores = {};
@@ -639,14 +649,14 @@ export default function GameSessionPage() {
               <div className={styles.winnerSection}>
                 {winners.length > 0 && (
                   <div className={styles.winnerDisplay}>
-                    <Header text={winners.length === 1 ? "Winner:" : "Winners (Tie):"} />
+                    <Header text={winners.length === 1 ? "Winner:" : "Winners (Tie):"} variant="playful" />
                     {winners.map(winner => (
                       <Text key={winner.id} text={`🏆 ${winner.game_name || winner.username} - ${maxScore} points`} />
                     ))}
                   </div>
                 )}
                 <div className={styles.statisticsSection}>
-                  <Header text="Final Statistics" />
+                  <Header text="Final Statistics" variant="playful" />
                   <div className={styles.statsTable}>
                     <table className={styles.statisticsTable}>
                       <thead>
@@ -670,226 +680,245 @@ export default function GameSessionPage() {
             );
           })()}
         </div>
-      ) : (
+      ) : gameSession && !gameSession.is_completed ? (
         <>
-          <div className={styles.gameInfo}>
-            {gameSession && gameSession.total_rounds > 1 && (
-              <div className={styles.roundInfo}>
-                <Header text={`Round ${gameSession.current_round} of ${gameSession.total_rounds}`} />
-              </div>
-            )}
-            {remainingSeconds !== null && gameSession && !gameSession.is_completed && (
-              <div className={styles.timerDisplay}>
-                <Header text={`Time Remaining: ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`} />
-              </div>
-            )}
-            <div className={styles.letterDisplay}>
-              <Header text={`Letter: ${finalLetter || 'Not set'}`} />
+          {/* Top Bar: Letter (left), Timer/Next Round Button (center), Players (right) */}
+          <div className={styles.topBar}>
+            {/* Letter Display - Left */}
+            <div className={styles.letterCard}>
+              <div className={styles.letterLabel}>Letter</div>
+              <div className={styles.letterValue}>{finalLetter || '?'}</div>
             </div>
-            
-            <div className={styles.roomInfo}>
-              <Text text={`Room ID: ${room.id}`} />
-              <Text text={`Room Name: ${room.name}`} />
-              <Text text={`Players: ${players.length}`} />
-              {isHost && <Text text="(You are the host)" />}
+
+            {/* Center Column - Timer or Next Round Button */}
+            <div className={styles.centerColumn}>
+              {/* Timer Display - Center (only show when NOT showing results) */}
+              {!(showResults || allPlayersSubmitted) && remainingSeconds !== null && (
+                <div className={styles.timerCard}>
+                  <div className={styles.timerLabel}>Time</div>
+                  <div className={styles.timerValue}>
+                    {Math.floor(remainingSeconds / 60)}:{String(remainingSeconds % 60).padStart(2, '0')}
+                  </div>
+                </div>
+              )}
+
+              {/* Next Round Button - Center (only show when results are showing and user is host) */}
+              {(showResults || allPlayersSubmitted) && isHost && gameSession.total_rounds > 1 && !gameSession.is_completed && (
+                <div className={styles.nextRoundButtonCard}>
+                  <Button 
+                    onButtonClick={() => {
+                      advanceRoundMutation.mutate(roomId, {
+                        onSuccess: () => {
+                          refetchGameSession();
+                          refetchScores();
+                        },
+                        onError: (error) => {
+                          const errorMessage = error.response?.data?.error || 
+                                             error.response?.data?.detail ||
+                                             'Failed to advance round. Please try again.';
+                          showError(errorMessage);
+                        }
+                      });
+                    }}
+                    disabled={advanceRoundMutation.isPending}
+                    variant="playful"
+                    fullWidth
+                  >
+                    {advanceRoundMutation.isPending ? '⏳ Advancing...' : '➡️ Next Round'}
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
 
-        </>
-      )}
-
-      {gameSession && !gameSession.is_completed && (
-        <>
-          <div className={styles.playersList}>
-        <Header text="Players" />
-        {players.map((player) => {
-          const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
-          const playerUsername = player.username || player.game_name;
-          const hasSubmitted = submittedPlayers.has(playerUsername);
-          const showPoints = allPlayersSubmitted && playerScore && playerScore.points !== null && playerScore.points !== undefined;
-          return (
-            <div key={player.id} className={styles.playerItem}>
-              <Text text={`${player.game_name || player.username} ${player.user_id === room.host_id ? '(Host)' : ''}${hasSubmitted ? ' ✓ Submitted' : ''}${showPoints ? ` - ${playerScore.points} points` : ''}`} />
-            </div>
-          );
-        })}
-      </div>
-
-      {gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 ? (
-        <div className={styles.gameRules}>
-          <Header text="Game Types" />
-          <div className={styles.typesList}>
-            {displayTypes.map((type, index) => (
-              <div key={index} className={styles.typeTag}>
-                <Text text={type} />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : gameSession ? (
-        <div className={styles.gameRules}>
-          <Text text="Game types not configured yet." />
-        </div>
-      ) : null}
-
-      <div className={styles.gameArea}>
-        <Header text="Game Area" />
-        <Text text="Start playing! Fill in words for each category starting with the letter above." />
-        {gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 ? (
-          <>
-            {displayTypes.map((type, index) => {
-              const gameTypeKey = gameSession.selected_types[index];
-              const error = validationErrors[gameTypeKey];
-              const currentValue = answers[gameTypeKey] || '';
-              const isValid = !error && (currentValue.trim() === '' || (finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase()));
-              
-              return (
-                <div key={index} className={styles.inputField}>
-                  <Text text={`${type}:`} />
-                  <input 
-                    type="text" 
-                    className={`${styles.textInput} ${error ? styles.textInputError : ''} ${isValid && currentValue.trim() !== '' ? styles.textInputValid : ''}`}
-                    placeholder={`Enter a word for ${type} starting with "${finalLetter || '?'}"`}
-                    value={currentValue}
-                    onChange={(e) => handleAnswerChange(gameTypeKey, e.target.value)}
-                    disabled={isSubmitted}
-                  />
-                  {error && (
-                    <div className={styles.errorMessage}>
-                      {error}
+            {/* Players Display - Right */}
+            <div className={styles.playersCard}>
+              <div className={styles.playersLabel}>Players</div>
+              <div className={styles.playersList}>
+                {players.map((player) => {
+                  const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
+                  const playerUsername = player.username || player.game_name;
+                  const hasSubmitted = submittedPlayers.has(playerUsername);
+                  const showPoints = allPlayersSubmitted && playerScore && playerScore.points !== null && playerScore.points !== undefined;
+                  return (
+                    <div key={player.id} className={styles.playerBadge}>
+                      <span className={styles.playerName}>
+                        {player.game_name || player.username}
+                        {player.user_id === room.host_id && <span className={styles.hostIcon}>👑</span>}
+                      </span>
+                      {hasSubmitted && <span className={styles.submittedIcon}>✓</span>}
+                      {showPoints && <span className={styles.pointsBadge}>{playerScore.points}pts</span>}
                     </div>
-                  )}
-                  {!error && currentValue.trim() !== '' && finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase() && (
-                    <div className={styles.successMessage}>
-                      ✓ Valid word starting with "{finalLetter}"
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Round Info */}
+          {gameSession.total_rounds > 1 && (
+            <div className={styles.roundInfo}>
+              Round {gameSession.current_round} of {gameSession.total_rounds}
+            </div>
+          )}
+
+          {/* Categories Section - Show when time is active, hide when results show */}
+          {!(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 && (
+            <div className={styles.categoriesSection}>
+              <h2 className={styles.sectionTitle}>
+                <span className={styles.icon}>📝</span>
+                Categories
+              </h2>
+              <div className={styles.categoriesGrid}>
+                {displayTypes.map((type, index) => {
+                  const gameTypeKey = gameSession.selected_types[index];
+                  const error = validationErrors[gameTypeKey];
+                  const currentValue = answers[gameTypeKey] || '';
+                  const isValid = !error && (currentValue.trim() === '' || (finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase()));
+                  
+                  return (
+                    <div key={index} className={styles.categoryCard}>
+                      <label className={styles.categoryLabel}>{type}</label>
+                      <input 
+                        type="text" 
+                        className={`${styles.categoryInput} ${error ? styles.categoryInputError : ''} ${isValid && currentValue.trim() !== '' ? styles.categoryInputValid : ''}`}
+                        placeholder={`Start with "${finalLetter || '?'}"`}
+                        value={currentValue}
+                        onChange={(e) => handleAnswerChange(gameTypeKey, e.target.value)}
+                        disabled={isSubmitted}
+                      />
+                      {error && (
+                        <div className={styles.errorMessage}>
+                          {error}
+                        </div>
+                      )}
+                      {!error && currentValue.trim() !== '' && finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase() && (
+                        <div className={styles.successMessage}>
+                          ✓ Valid
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {!isSubmitted && (
+                <div className={styles.submitSection}>
+                  <Button 
+                    onButtonClick={handleSubmit}
+                    disabled={submitAnswerMutation.isPending || Object.keys(validationErrors).length > 0}
+                    variant="playful"
+                    fullWidth
+                  >
+                    {submitAnswerMutation.isPending ? '⏳ Submitting...' : '🚀 Submit Answers'}
+                  </Button>
+                  {Object.keys(validationErrors).length > 0 && (
+                    <div className={styles.validationWarning}>
+                      Please fix validation errors before submitting.
                     </div>
                   )}
                 </div>
-              );
-            })}
-            {!isSubmitted && (
-              <Button 
-                onButtonClick={handleSubmit}
-                disabled={submitAnswerMutation.isPending || Object.keys(validationErrors).length > 0}
-              >
-                {submitAnswerMutation.isPending ? 'Submitting...' : 'Submit Answers'}
-              </Button>
-            )}
-            {!isSubmitted && Object.keys(validationErrors).length > 0 && (
-              <div className={styles.validationWarning}>
-                Please fix validation errors before submitting.
-              </div>
-            )}
-            {isSubmitted && !allPlayersSubmitted && (
-              <Text text="Answers submitted! Waiting for other players..." />
-            )}
-            {allPlayersSubmitted && (
-              <Text text="All players have submitted! See the results below." />
-            )}
-          </>
-        ) : (
-          <Text text="No game types configured yet. Please wait for the host to configure the game." />
-        )}
-      </div>
-
-      {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
-        <>
-          {isHost && allPlayersSubmitted && gameSession.total_rounds > 1 && !gameSession.is_completed && (
-            <div className={styles.advanceRoundSection}>
-              <Button 
-                onButtonClick={() => {
-                  advanceRoundMutation.mutate(roomId, {
-                    onSuccess: () => {
-                      refetchGameSession();
-                      refetchScores();
-                    },
-                    onError: (error) => {
-                      const errorMessage = error.response?.data?.error || 
-                                         error.response?.data?.detail ||
-                                         'Failed to advance round. Please try again.';
-                      showError(errorMessage);
-                    }
-                  });
-                }}
-                disabled={advanceRoundMutation.isPending}
-              >
-                {advanceRoundMutation.isPending ? 'Advancing...' : 'Continue to Next Round'}
-              </Button>
+              )}
+              {isSubmitted && !allPlayersSubmitted && (
+                <div className={styles.waitingMessage}>
+                  <span className={styles.waitingIcon}>⏳</span>
+                  Answers submitted! Waiting for other players...
+                </div>
+              )}
             </div>
           )}
-          <div className={styles.resultsTable}>
-            <Header text="Results Table" />
-            <table className={styles.answersTable}>
-            <thead>
-              <tr>
-                <th className={styles.tableHeader}>Category</th>
-                {players.map((player) => (
-                  <th key={player.id} className={styles.tableHeader}>
-                    {player.game_name || player.username}
-                    {player.user_id === room.host_id ? ' (Host)' : ''}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayTypes.map((type, index) => {
-                const gameTypeKey = gameSession.selected_types[index];
-                return (
-                  <tr key={index} className={styles.tableRow}>
-                    <td className={styles.categoryCell}>{type}</td>
-                    {players.map((player) => {
-                      const answer = getPlayerAnswer(player.id, gameTypeKey);
-                      const points = getPlayerPointsForCategory(player.id, gameTypeKey);
-                      return (
-                        <td key={player.id} className={styles.answerCell}>
-                          <div>{answer || '-'}</div>
-                          {points !== null && points !== undefined && (
-                            <div className={styles.pointsLabel}>({points} pts)</div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className={styles.totalRow}>
-                <td className={styles.totalCell}>Total Points</td>
-                {players.map((player) => {
-                  const totalPoints = getPlayerTotalPoints(player.id);
-                  return (
-                    <td key={player.id} className={styles.totalCell}>
-                      {totalPoints !== null && totalPoints !== undefined ? totalPoints : '-'}
-                    </td>
-                  );
-                })}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        </>
-      )}
-        </>
-      )}
 
-      <div className={styles.actions}>
-        {isHost && (
-          <Button onButtonClick={() => navigate(`/host/rules/${room.id}`)}>
-            Configure Game Rules
-          </Button>
-        )}
-        <Button onButtonClick={() => {
-          const storedRoomType = localStorage.getItem('room_type');
-          if (storedRoomType === 'host') {
-            navigate('/host');
-          } else {
-            navigate('/join');
-          }
-        }}>
-          Back to Room
-        </Button>
-      </div>
+          {/* Results Table - Show when time is up or all players submitted */}
+          {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
+            <div className={styles.resultsSection}>
+                <h2 className={styles.sectionTitle}>
+                  <span className={styles.icon}>📊</span>
+                  Results
+                </h2>
+                <div className={styles.resultsTable}>
+                  <table className={styles.answersTable}>
+                    <thead>
+                      <tr>
+                        <th className={styles.tableHeader}>Category</th>
+                        {players.map((player) => (
+                          <th key={player.id} className={styles.tableHeader}>
+                            {player.game_name || player.username}
+                            {player.user_id === room.host_id && <span className={styles.hostIcon}>👑</span>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayTypes.map((type, index) => {
+                        const gameTypeKey = gameSession.selected_types[index];
+                        return (
+                          <tr key={index} className={styles.tableRow}>
+                            <td className={styles.categoryCell}>{type}</td>
+                            {players.map((player) => {
+                              const answer = getPlayerAnswer(player.id, gameTypeKey);
+                              const points = getPlayerPointsForCategory(player.id, gameTypeKey);
+                              return (
+                                <td key={player.id} className={styles.answerCell}>
+                                  <div className={styles.answerText}>{answer || '-'}</div>
+                                  {points !== null && points !== undefined && (
+                                    <div className={styles.pointsLabel}>{points} pts</div>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className={styles.totalRow}>
+                        <td className={styles.totalCell}>Total Points</td>
+                        {players.map((player) => {
+                          const totalPoints = getPlayerTotalPoints(player.id);
+                          return (
+                            <td key={player.id} className={styles.totalCell}>
+                              {totalPoints !== null && totalPoints !== undefined ? totalPoints : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+          )}
+
+          {/* Actions */}
+          <div className={styles.actions}>
+            {isHost && (
+              <Button 
+                onButtonClick={() => navigate(`/host/rules/${room.id}`)}
+                variant="playful"
+                size="small"
+              >
+                ⚙️ Configure Rules
+              </Button>
+            )}
+            <Button 
+              onButtonClick={() => {
+                const storedRoomType = localStorage.getItem('room_type');
+                if (storedRoomType === 'host') {
+                  navigate('/host');
+                } else {
+                  navigate('/join');
+                }
+              }}
+              variant="warning"
+              size="small"
+            >
+              ← Back to Room
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className={styles.loadingState}>
+          <div className={styles.loadingSpinner}>🎮</div>
+          <p className={styles.loadingText}>Loading game session...</p>
+        </div>
+      )}
     </div>
   );
 }
