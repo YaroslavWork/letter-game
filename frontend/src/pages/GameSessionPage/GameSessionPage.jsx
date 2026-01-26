@@ -3,11 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound } from '../../features/hooks/index.hooks';
+import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useGameTimer } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
 import Header from '../../components/UI/Header/Header';
+import GameTimer from '../../components/UI/GameTimer/GameTimer';
 import styles from './GameSessionPage.module.css';
 
 export default function GameSessionPage() {
@@ -26,9 +27,7 @@ export default function GameSessionPage() {
   const [showResults, setShowResults] = useState(false);
   const [previousRoundScores, setPreviousRoundScores] = useState(null);
   const [previousRoundNumber, setPreviousRoundNumber] = useState(null);
-  const [remainingSeconds, setRemainingSeconds] = useState(null);
   const lastWebSocketUpdateRef = useRef(null);
-  const autoSubmittedRef = useRef(false);
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const advanceRoundMutation = useMutationAdvanceRound();
@@ -69,8 +68,6 @@ export default function GameSessionPage() {
             setSubmittedPlayers(new Set());
             // Reset showResults to show categories again for the new round
             setShowResults(false);
-            // Reset auto-submit flag for new round
-            autoSubmittedRef.current = false;
             // Clear previous round scores after a brief delay to allow transition
             setTimeout(() => {
               setPreviousRoundScores(null);
@@ -346,8 +343,6 @@ export default function GameSessionPage() {
         setSubmittedPlayers(new Set());
         // Reset showResults to show categories again for the new round
         setShowResults(false);
-        // Reset auto-submit flag for new round
-        autoSubmittedRef.current = false;
         // Clear previous round scores after a brief delay to allow transition
         setTimeout(() => {
           setPreviousRoundScores(null);
@@ -370,12 +365,9 @@ export default function GameSessionPage() {
 
   // Auto-submit function - submits answers when timer reaches 0
   const handleAutoSubmit = useCallback(() => {
-    if (!roomId || !gameSession || isSubmitted || autoSubmittedRef.current) {
+    if (!roomId || !gameSession || isSubmitted) {
       return;
     }
-
-    // Mark as auto-submitted to prevent multiple calls
-    autoSubmittedRef.current = true;
 
     // Prepare answers - submit whatever is filled, empty strings for unfilled
     const answersToSubmit = {};
@@ -393,8 +385,6 @@ export default function GameSessionPage() {
           showWarning(t('game.timeUpAutoSubmitted'));
         },
         onError: (error) => {
-          // Reset auto-submitted flag on error so user can try again
-          autoSubmittedRef.current = false;
           const errorMessage = error.response?.data?.error || 
                              error.response?.data?.detail ||
                              t('game.failedToAutoSubmit');
@@ -402,49 +392,10 @@ export default function GameSessionPage() {
         }
       }
     );
-  }, [roomId, gameSession, isSubmitted, answers, submitAnswerMutation, refetchScores]);
+  }, [roomId, gameSession, isSubmitted, answers, submitAnswerMutation, refetchScores, showWarning, showError, t]);
 
-  // Calculate and update timer
-  useEffect(() => {
-    if (!gameSession || gameSession.is_completed || !gameSession.round_start_time) {
-      setRemainingSeconds(null);
-      // Reset auto-submit flag when timer is not active
-      autoSubmittedRef.current = false;
-      return;
-    }
-
-    // Reset auto-submit flag when round changes
-    autoSubmittedRef.current = false;
-
-    const calculateRemainingTime = () => {
-      const startTime = new Date(gameSession.round_start_time);
-      const now = new Date();
-      const elapsedSeconds = Math.floor((now - startTime) / 1000);
-      const timerSeconds = gameSession.round_timer_seconds || 60;
-      const remaining = Math.max(0, timerSeconds - elapsedSeconds);
-      return remaining;
-    };
-
-    // Calculate initial remaining time
-    setRemainingSeconds(calculateRemainingTime());
-
-    // Update timer every second
-    const interval = setInterval(() => {
-      const remaining = calculateRemainingTime();
-      setRemainingSeconds(remaining);
-      
-      // If timer reaches 0, auto-submit and stop updating
-      if (remaining <= 0) {
-        clearInterval(interval);
-        // Auto-submit if not already submitted
-        if (!isSubmitted && !autoSubmittedRef.current) {
-          handleAutoSubmit();
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [gameSession?.round_start_time, gameSession?.round_timer_seconds, gameSession?.current_round, gameSession?.is_completed, isSubmitted, handleAutoSubmit]);
+  // Use game timer hook to manage timer logic and auto-submit
+  const remainingSeconds = useGameTimer(gameSession, isSubmitted, handleAutoSubmit);
 
   if (isLoadingRoom || !room) {
     return (
@@ -805,13 +756,8 @@ export default function GameSessionPage() {
               )}
 
               {/* Timer Display - Bottom (only show when NOT showing results) */}
-              {!(showResults || allPlayersSubmitted) && remainingSeconds !== null && (
-                <div className={styles.timerCard}>
-                  <div className={styles.timerLabel}>{t('game.time')}</div>
-                  <div className={styles.timerValue}>
-                    {Math.floor(remainingSeconds / 60)}:{String(remainingSeconds % 60).padStart(2, '0')}
-                  </div>
-                </div>
+              {!(showResults || allPlayersSubmitted) && (
+                <GameTimer remainingSeconds={remainingSeconds} />
               )}
 
               {/* Next Round / See Results Button - Bottom (only show when results are showing and user is host) */}
