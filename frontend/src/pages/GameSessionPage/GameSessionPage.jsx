@@ -3,12 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useGameTimer } from '../../features/hooks/index.hooks';
+import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useGameTimer, useAnswerForm } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
 import Header from '../../components/UI/Header/Header';
 import GameTimer from '../../components/UI/GameTimer/GameTimer';
+import AnswerForm from '../../components/UI/AnswerForm/AnswerForm';
 import styles from './GameSessionPage.module.css';
 
 export default function GameSessionPage() {
@@ -36,6 +37,10 @@ export default function GameSessionPage() {
 
   const { data: existingRoomData, isLoading: isLoadingRoom, error: roomError } = useRoom(roomId);
   const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession, error: gameSessionError } = useGameSession(roomId);
+  
+  // Use answer form hook for validation
+  const finalLetter = gameSession?.final_letter || gameSession?.letter;
+  const { validateAnswer, validateAllAnswers } = useAnswerForm(finalLetter, t);
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
@@ -415,7 +420,6 @@ export default function GameSessionPage() {
   }
 
   const isHost = user?.id === room.host_id;
-  const finalLetter = gameSession?.final_letter || gameSession?.letter;
 
   const getDisplayTypes = (gameSession) => {
     if (!gameSession || !gameSession.selected_types) return [];
@@ -446,8 +450,6 @@ export default function GameSessionPage() {
   const displayTypes = getDisplayTypes(gameSession);
 
   const handleAnswerChange = (gameType, value) => {
-    const letter = finalLetter?.toUpperCase();
-    
     // If user starts typing in a new round, hide the previous round's results and refetch scores
     if (!isSubmitted && showResults && value.trim().length > 0) {
       setShowResults(false);
@@ -462,25 +464,15 @@ export default function GameSessionPage() {
       [gameType]: value
     }));
     
-    // Validate that the word starts with the game letter (case-insensitive)
-    if (letter && value.trim().length > 0) {
-      const firstChar = value.trim()[0].toUpperCase();
-      if (firstChar !== letter) {
-        // Show error but allow typing
-        setValidationErrors(prev => ({
-          ...prev,
-          [gameType]: t('game.wordMustStartWith', { letter })
-        }));
-      } else {
-        // Clear error if validation passes
-        setValidationErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[gameType];
-          return newErrors;
-        });
-      }
+    // Validate using the hook
+    const error = validateAnswer(value);
+    if (error) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [gameType]: error
+      }));
     } else {
-      // Clear error for empty input
+      // Clear error if validation passes
       setValidationErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[gameType];
@@ -499,20 +491,9 @@ export default function GameSessionPage() {
       return;
     }
 
-    // Validate all answers one more time before submission
-    const letter = finalLetter?.toUpperCase();
-    const invalidAnswers = [];
-    gameSession.selected_types.forEach(type => {
-      const answer = answers[type] || '';
-      if (answer.trim() !== '' && letter) {
-        const firstChar = answer.trim()[0].toUpperCase();
-        if (firstChar !== letter) {
-          invalidAnswers.push(type);
-        }
-      }
-    });
-
-    if (invalidAnswers.length > 0) {
+    // Validate all answers one more time before submission using the hook
+    const isValid = validateAllAnswers(answers, gameSession.selected_types);
+    if (!isValid) {
       showError(t('game.someAnswersInvalid'));
       return;
     }
@@ -852,65 +833,18 @@ export default function GameSessionPage() {
 
           {/* Categories Section - Show when time is active, hide when results show */}
           {!(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && gameSession.selected_types.length > 0 && displayTypes.length > 0 && (
-            <div className={styles.categoriesSection}>
-              <h2 className={styles.sectionTitle}>
-                {t('game.categories')}
-              </h2>
-              <div className={styles.categoriesGrid}>
-                {displayTypes.map((type, index) => {
-                  const gameTypeKey = gameSession.selected_types[index];
-                  const error = validationErrors[gameTypeKey];
-                  const currentValue = answers[gameTypeKey] || '';
-                  const isValid = !error && (currentValue.trim() === '' || (finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase()));
-                  
-                  return (
-                    <div key={index} className={styles.categoryCard}>
-                      <label className={styles.categoryLabel}>{type}</label>
-                      <input 
-                        type="text" 
-                        className={`${styles.categoryInput} ${error ? styles.categoryInputError : ''} ${isValid && currentValue.trim() !== '' ? styles.categoryInputValid : ''}`}
-                        placeholder={t('game.startWith', { letter: finalLetter || '?' })}
-                        value={currentValue}
-                        onChange={(e) => handleAnswerChange(gameTypeKey, e.target.value)}
-                        disabled={isSubmitted}
-                      />
-                      {error && (
-                        <div className={styles.errorMessage}>
-                          {error}
-                        </div>
-                      )}
-                      {!error && currentValue.trim() !== '' && finalLetter && currentValue.trim()[0].toUpperCase() === finalLetter.toUpperCase() && (
-                        <div className={styles.successMessage}>
-                          {t('game.valid')}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {!isSubmitted && (
-                <div className={styles.submitSection}>
-                  <Button 
-                    onButtonClick={handleSubmit}
-                    disabled={submitAnswerMutation.isPending || Object.keys(validationErrors).length > 0}
-                    variant="playful"
-                    fullWidth
-                  >
-                    {submitAnswerMutation.isPending ? t('game.submitting') : t('game.submitAnswers')}
-                  </Button>
-                  {Object.keys(validationErrors).length > 0 && (
-                    <div className={styles.validationWarning}>
-                      {t('game.fixValidationErrors')}
-                    </div>
-                  )}
-                </div>
-              )}
-              {isSubmitted && !allPlayersSubmitted && (
-                <div className={styles.waitingMessage}>
-                  {t('game.answersSubmitted')}
-                </div>
-              )}
-            </div>
+            <AnswerForm
+              displayTypes={displayTypes}
+              selectedTypes={gameSession.selected_types}
+              letter={finalLetter}
+              answers={answers}
+              validationErrors={validationErrors}
+              onAnswerChange={handleAnswerChange}
+              onSubmit={handleSubmit}
+              isSubmitted={isSubmitted}
+              isSubmitting={submitAnswerMutation.isPending}
+              allPlayersSubmitted={allPlayersSubmitted}
+            />
           )}
 
           {/* Results Table - Show when time is up or all players submitted */}
