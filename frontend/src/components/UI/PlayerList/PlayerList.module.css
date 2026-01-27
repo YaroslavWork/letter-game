@@ -1,0 +1,65 @@
+/* Players Card - Right */
+.playersCard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-lg);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.playersLabel {
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.playersList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.playerBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--background-light);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-small);
+  border: 1px solid var(--border-muted);
+}
+
+.playerName {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.hostIcon {
+  font-size: 0.875rem;
+}
+
+.submittedIcon {
+  color: var(--success);
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.pointsBadge {
+  background: var(--accent-purple);
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--border-radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+}

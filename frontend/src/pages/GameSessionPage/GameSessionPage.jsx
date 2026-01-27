@@ -11,6 +11,7 @@ import Header from '../../components/UI/Header/Header';
 import GameTimer from '../../components/UI/GameTimer/GameTimer';
 import AnswerForm from '../../components/UI/AnswerForm/AnswerForm';
 import ResultsTable from '../../components/UI/ResultsTable/ResultsTable';
+import PlayerList from '../../components/UI/PlayerList/PlayerList';
 import styles from './GameSessionPage.module.css';
 
 export default function GameSessionPage() {
@@ -809,27 +810,13 @@ export default function GameSessionPage() {
             </div>
 
             {/* Players Display - Right */}
-            <div className={styles.playersCard}>
-              <div className={styles.playersLabel}>{t('game.players')}</div>
-              <div className={styles.playersList}>
-                {players.map((player) => {
-                  const playerScore = playerScores.find(ps => ps.player === player.id || ps.player_username === player.username);
-                  const playerUsername = player.username || player.game_name;
-                  const hasSubmitted = submittedPlayers.has(playerUsername);
-                  const roundPoints = playerScore?.points !== null && playerScore?.points !== undefined ? playerScore.points : null;
-                  return (
-                    <div key={player.id} className={styles.playerBadge}>
-                      <span className={styles.playerName}>
-                        {player.game_name || player.username}
-                        {player.user_id === room.host_id && <span className={styles.hostIcon}>{t('host.host')}</span>}
-                      </span>
-                      {hasSubmitted && <span className={styles.submittedIcon}>{t('game.submitted')}</span>}
-                      <span className={styles.pointsBadge}>{formatPointsDisplay(roundPoints, player.id)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <PlayerList
+              players={players}
+              playerScores={playerScores}
+              submittedPlayers={submittedPlayers}
+              room={room}
+              formatPointsDisplay={formatPointsDisplay}
+            />
           </div>
 
           {/* Categories Section - Show when time is active, hide when results show */}
