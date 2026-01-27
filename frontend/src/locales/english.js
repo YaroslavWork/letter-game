@@ -153,6 +153,8 @@ export const english = {
   'game.timeUpAutoSubmitted': 'Time is up! Your answers have been automatically submitted.',
   'game.failedToAutoSubmit': 'Failed to auto-submit answers. Please submit manually.',
   'game.failedToAdvanceRound': 'Failed to advance round. Please try again.',
+  'game.failedToEndGameSession': 'Failed to end game session. Please try again.',
+  'game.endingGameSession': 'Ending game session...',
   'game.roomNotFound': 'Room not found. The room may have been deleted or the room ID is invalid.',
   'game.invalidRoomIdFormat': 'Invalid room ID format.',
   'game.rank1st': '1st',

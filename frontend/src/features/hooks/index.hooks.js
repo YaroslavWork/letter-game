@@ -107,7 +107,14 @@ export const useMutationAdvanceRound = () => {
   });
 };
 
+export const useMutationEndGameSession = () => {
+  return useMutation({
+    mutationFn: (roomId) => api.endGameSession(roomId),
+  });
+};
+
 // Export custom hooks
 export { useGameTimer } from './useGameTimer';
 export { useAnswerForm } from './useAnswerForm';
 export { useRoundManagement } from './useRoundManagement';
+export { useGameState, GAME_ACTIONS } from './useGameState';

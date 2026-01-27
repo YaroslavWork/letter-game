@@ -50,7 +50,7 @@ export const useRoundManagement = (gameSession, playerScoresData, refetchScores,
       
       prevRoundRef.current = currentRound;
     }
-  }, [gameSession?.current_round, playerScoresData, refetchScores, onRoundChange]);
+  }, [gameSession?.current_round, gameSession, playerScoresData, refetchScores, onRoundChange]);
 
   // Handle round advancement from WebSocket updates
   const handleRoundAdvancement = useCallback((oldRound, newRound, currentPlayerScores) => {

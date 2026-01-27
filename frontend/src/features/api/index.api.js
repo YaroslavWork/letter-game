@@ -23,3 +23,4 @@ export const getPlayerScores = (roomId, includeTotals = false) => {
   return axios.get(`/rooms/${roomId}/game-session/scores/`, { params });
 };
 export const advanceRound = (roomId) => axios.post(`/rooms/${roomId}/game-session/advance-round/`);
+export const endGameSession = (roomId) => axios.post(`/rooms/${roomId}/game-session/end/`);

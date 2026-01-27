@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useGameTimer, useAnswerForm, useRoundManagement } from '../../features/hooks/index.hooks';
+import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useMutationEndGameSession, useGameTimer, useAnswerForm, useRoundManagement, useGameState } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -20,23 +20,31 @@ export default function GameSessionPage() {
   const { error: showError, success: showSuccess, warning: showWarning } = useNotification();
   const { t } = useLanguage();
   const { roomId } = useParams();
-  const [room, setRoom] = useState(null);
-  const [players, setPlayers] = useState([]);
-  const [gameSession, setGameSession] = useState(null);
-  const [answers, setAnswers] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submittedPlayers, setSubmittedPlayers] = useState(new Set());
-  const [validationErrors, setValidationErrors] = useState({});
-  const [showResults, setShowResults] = useState(false);
   const lastWebSocketUpdateRef = useRef(null);
+
+  // Use game state reducer
+  const { state, actions } = useGameState();
+  const {
+    room,
+    players,
+    gameSession,
+    answers,
+    isSubmitted,
+    submittedPlayers,
+    validationErrors,
+    showResults,
+    isGameCompleted,
+    previousGameSessionId
+  } = state;
 
   const submitAnswerMutation = useMutationSubmitAnswer();
   const advanceRoundMutation = useMutationAdvanceRound();
+  const endGameSessionMutation = useMutationEndGameSession();
   // Always include totals to show round/total format
   const { data: playerScoresData, refetch: refetchScores } = usePlayerScores(roomId, true);
 
   const { data: existingRoomData, isLoading: isLoadingRoom, error: roomError } = useRoom(roomId);
-  const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession, error: gameSessionError } = useGameSession(roomId);
+  const { data: gameSessionData, isLoading: isLoadingGameSession, refetch: refetchGameSession } = useGameSession(roomId);
   
   // Use answer form hook for validation
   const finalLetter = gameSession?.final_letter || gameSession?.letter;
@@ -44,12 +52,8 @@ export default function GameSessionPage() {
 
   // Callback for round changes - resets form state
   const handleRoundChange = useCallback(() => {
-    setIsSubmitted(false);
-    setAnswers({});
-    setValidationErrors({});
-    setSubmittedPlayers(new Set());
-    setShowResults(false);
-  }, []);
+    actions.resetRound();
+  }, [actions]);
 
   // Use round management hook
   const {
@@ -65,15 +69,19 @@ export default function GameSessionPage() {
     if (data.type === 'room_update') {
       const newGameSession = data.data?.game_session;
       
-      setRoom(data.data);
-      setPlayers(data.data.players || []);
+      actions.setRoom(data.data);
+      actions.setPlayers(data.data.players || []);
       if (newGameSession) {
         // Mark that we received a WebSocket update
         lastWebSocketUpdateRef.current = Date.now();
         
-        // Use functional update to get current gameSession state
-        setGameSession(prevGameSession => {
-          const oldRound = prevGameSession?.current_round;
+        // Check if this is a new game session after completion
+        if (isGameCompleted && newGameSession.id !== previousGameSessionId && newGameSession.id !== gameSession?.id) {
+          // New game session started after completion
+          actions.newGameSession(newGameSession);
+        } else {
+          // Check if round advanced
+          const oldRound = gameSession?.current_round;
           const newRound = newGameSession.current_round;
           
           // Check if round advanced using the hook
@@ -89,8 +97,9 @@ export default function GameSessionPage() {
             refetchScores();
           }
           
-          return newGameSession;
-        });
+          // Update game session
+          actions.updateGameSession(newGameSession);
+        }
       } else {
         // No game session in update, refetch scores normally
         refetchScores();
@@ -99,8 +108,13 @@ export default function GameSessionPage() {
       // Mark that we received a WebSocket update
       lastWebSocketUpdateRef.current = Date.now();
       if (data.game_session) {
-        // Always update gameSession when game starts - this has the letter
-        setGameSession(data.game_session);
+        // Check if this is a new game session after completion
+        if (isGameCompleted && data.game_session.id !== previousGameSessionId && data.game_session.id !== gameSession?.id) {
+          actions.newGameSession(data.game_session);
+        } else {
+          // Always update gameSession when game starts - this has the letter
+          actions.setGameSession(data.game_session);
+        }
       }
       // Refetch gameSession after a short delay to ensure we have the latest data
       // This is important for the host who might have just started the game
@@ -112,10 +126,10 @@ export default function GameSessionPage() {
       }
     } else if (data.type === 'player_submitted_notification') {
       // Update submitted players set
-      setSubmittedPlayers(prev => new Set([...prev, data.player_username]));
+      actions.addSubmittedPlayer(data.player_username);
       // Show results when all players submit
       if (data.all_players_submitted) {
-        setShowResults(true);
+        actions.setShowResults(true);
       }
       refetchScores();
     } else if (data.type === 'room_deleted_notification') {
@@ -125,7 +139,7 @@ export default function GameSessionPage() {
       localStorage.removeItem('room_type');
       navigate('/');
     }
-  }, [navigate, roomId, refetchGameSession, refetchScores, handleRoundAdvancement, playerScoresData]);
+  }, [navigate, roomId, refetchGameSession, refetchScores, handleRoundAdvancement, playerScoresData, actions, isGameCompleted, previousGameSessionId, gameSession, showError, t]);
 
   useEffect(() => {
     wsClient.on('message', handleWebSocketMessage);
@@ -173,7 +187,7 @@ export default function GameSessionPage() {
     if (storedGameSession) {
       try {
         const parsedSession = JSON.parse(storedGameSession);
-        setGameSession(parsedSession);
+        actions.setGameSession(parsedSession);
         localStorage.removeItem('game_session');
       } catch (e) {
         console.error('Failed to parse stored game session:', e);
@@ -184,8 +198,8 @@ export default function GameSessionPage() {
       const roomData = existingRoomData?.data || existingRoomData;
       if (roomData && roomData.id) {
         if (!room) {
-          setRoom(roomData);
-          setPlayers(roomData.players || []);
+          actions.setRoom(roomData);
+          actions.setPlayers(roomData.players || []);
         }
         // Only set gameSession if we haven't received a recent WebSocket update
         // This prevents overwriting WebSocket updates with stale API data
@@ -195,26 +209,25 @@ export default function GameSessionPage() {
             : Infinity;
           // Always set if no gameSession yet (initial load), or if no recent WebSocket update
           if (!gameSession || timeSinceLastWebSocketUpdate > 2000) {
-            setGameSession(prevSession => {
+            // Prefer session with a letter over one without
+            if (gameSession?.letter && !roomData.game_session.letter) {
+              // Keep current session if it has a letter
+            } else if (!gameSession?.letter && roomData.game_session.letter) {
+              // Prefer new session if it has a letter
+              actions.updateGameSession(roomData.game_session);
+            } else if (!gameSession) {
               // Always set if no previous session (initial load)
-              if (!prevSession) {
-                return roomData.game_session;
-              }
-              // Prefer session with a letter over one without
-              if (prevSession.letter && !roomData.game_session.letter) {
-                return prevSession; // Keep current session if it has a letter
-              }
-              if (!prevSession.letter && roomData.game_session.letter) {
-                return roomData.game_session; // Prefer new session if it has a letter
-              }
+              actions.setGameSession(roomData.game_session);
+            } else {
               // Don't overwrite if current session has a newer or same round
-              if (roomData.game_session.current_round && prevSession.current_round) {
-                if (prevSession.current_round >= roomData.game_session.current_round) {
-                  return prevSession; // Keep current session if it's newer or same
+              if (roomData.game_session.current_round && gameSession.current_round) {
+                if (gameSession.current_round < roomData.game_session.current_round) {
+                  actions.updateGameSession(roomData.game_session);
                 }
+              } else {
+                actions.updateGameSession(roomData.game_session);
               }
-              return roomData.game_session;
-            });
+            }
           }
         }
         
@@ -237,30 +250,29 @@ export default function GameSessionPage() {
           : Infinity;
         // Always set if no gameSession yet (initial load), or if no recent WebSocket update
         if (!gameSession || timeSinceLastWebSocketUpdate > 2000) {
-          setGameSession(prevSession => {
+          // Prefer session with a letter over one without
+          if (gameSession?.letter && !sessionData.letter) {
+            // Keep current session if it has a letter
+          } else if (!gameSession?.letter && sessionData.letter) {
+            // Prefer new session if it has a letter
+            actions.updateGameSession(sessionData);
+          } else if (!gameSession) {
             // Always set if no previous session (initial load)
-            if (!prevSession) {
-              return sessionData;
-            }
-            // Prefer session with a letter over one without
-            if (prevSession.letter && !sessionData.letter) {
-              return prevSession; // Keep current session if it has a letter
-            }
-            if (!prevSession.letter && sessionData.letter) {
-              return sessionData; // Prefer new session if it has a letter
-            }
+            actions.setGameSession(sessionData);
+          } else {
             // Don't overwrite if current session has a newer or same round
-            if (sessionData.current_round && prevSession.current_round) {
-              if (prevSession.current_round >= sessionData.current_round) {
-                return prevSession; // Keep current session if it's newer or same
+            if (sessionData.current_round && gameSession.current_round) {
+              if (gameSession.current_round < sessionData.current_round) {
+                actions.updateGameSession(sessionData);
               }
+            } else {
+              actions.updateGameSession(sessionData);
             }
-            return sessionData;
-          });
+          }
         }
       }
     }
-  }, [isAuthenticated, navigate, roomId, existingRoomData, room, gameSessionData, roomError, isLoadingRoom, showError]);
+  }, [isAuthenticated, navigate, roomId, existingRoomData, room, gameSessionData, roomError, isLoadingRoom, showError, actions, gameSession, t]);
 
   useEffect(() => {
     if (roomId && room && !gameSession && !isLoadingGameSession) {
@@ -284,9 +296,9 @@ export default function GameSessionPage() {
         
         if (userAnswer && userAnswer.answers) {
           // User has already submitted, set submitted state and populate answers
-          setIsSubmitted(true);
+          actions.setIsSubmitted(true);
           // Populate answers with submitted values so user can see what they submitted
-          setAnswers(userAnswer.answers);
+          actions.setAnswers(userAnswer.answers);
         }
         
         // Update submitted players set
@@ -296,10 +308,10 @@ export default function GameSessionPage() {
             submitted.add(ps.player_username);
           }
         });
-        setSubmittedPlayers(submitted);
+        actions.setSubmittedPlayers(submitted);
       }
     }
-  }, [user, playerScoresData]);
+  }, [user, playerScoresData, actions]);
 
   // Get player scores using the hook (handles previous round logic)
   const playerScores = getPlayerScores();
@@ -316,9 +328,9 @@ export default function GameSessionPage() {
   // Reset showResults when game completes
   useEffect(() => {
     if (gameSession && gameSession.is_completed) {
-      setShowResults(true);
+      actions.gameCompleted();
     }
-  }, [gameSession?.is_completed]);
+  }, [gameSession?.is_completed, gameSession, actions]);
 
   // Show results when all players have submitted (for joiners who might miss WebSocket notification)
   // But only if we're not showing previous round results and we have submitted players
@@ -329,9 +341,9 @@ export default function GameSessionPage() {
         playerScoresData && 
         submittedPlayers.size > 0 &&
         !isShowingPreviousRound) {
-      setShowResults(true);
+      actions.setShowResults(true);
     }
-  }, [allPlayersSubmitted, gameSession, playerScoresData, submittedPlayers.size, isShowingPreviousRound]);
+  }, [allPlayersSubmitted, gameSession, playerScoresData, submittedPlayers.size, isShowingPreviousRound, actions]);
 
   // Round change detection and state reset is handled by useRoundManagement hook
 
@@ -358,7 +370,7 @@ export default function GameSessionPage() {
       { roomId, data: { answers: answersToSubmit } },
       {
         onSuccess: () => {
-          setIsSubmitted(true);
+          actions.setIsSubmitted(true);
           refetchScores();
           // Show notification that auto-submit happened
           showWarning(t('game.timeUpAutoSubmitted'));
@@ -376,6 +388,40 @@ export default function GameSessionPage() {
   // Use game timer hook to manage timer logic and auto-submit
   const remainingSeconds = useGameTimer(gameSession, isSubmitted, handleAutoSubmit);
 
+  // Calculate isHost before early returns (needed for handleReturnToRoom)
+  const isHost = user?.id === room?.host_id;
+
+  // Handle return to room - for host: end game session first, for joiners: just navigate
+  // Must be defined before early returns to follow React hooks rules
+  const handleReturnToRoom = useCallback(() => {
+    const storedRoomType = localStorage.getItem('room_type');
+    
+    if (isHost && gameSession && gameSession.letter) {
+      // Host: end the game session first (if game has started), then navigate
+      endGameSessionMutation.mutate(roomId, {
+        onSuccess: () => {
+          // Reset game state
+          actions.resetRound();
+          // Navigate to host room
+          navigate('/host');
+        },
+        onError: (error) => {
+          const errorMessage = error.response?.data?.error || 
+                             error.response?.data?.detail ||
+                             t('game.failedToEndGameSession');
+          showError(errorMessage);
+        }
+      });
+    } else {
+      // Joiner or game hasn't started: just navigate
+      if (storedRoomType === 'host') {
+        navigate('/host');
+      } else {
+        navigate('/join');
+      }
+    }
+  }, [isHost, gameSession, roomId, endGameSessionMutation, actions, navigate, showError, t]);
+
   if (isLoadingRoom || !room) {
     return (
       <div className={styles.gameSessionPage}>
@@ -392,8 +438,6 @@ export default function GameSessionPage() {
       </div>
     );
   }
-
-  const isHost = user?.id === room.host_id;
 
   const getDisplayTypes = (gameSession) => {
     if (!gameSession || !gameSession.selected_types) return [];
@@ -426,32 +470,17 @@ export default function GameSessionPage() {
   const handleAnswerChange = (gameType, value) => {
     // If user starts typing in a new round, hide the previous round's results and refetch scores
     if (!isSubmitted && showResults && value.trim().length > 0) {
-      setShowResults(false);
+      actions.setShowResults(false);
       clearPreviousRoundData();
       refetchScores();
     }
     
     // Always update the answer value (allow typing)
-    setAnswers(prev => ({
-      ...prev,
-      [gameType]: value
-    }));
+    actions.updateAnswer(gameType, value);
     
     // Validate using the hook
     const error = validateAnswer(value);
-    if (error) {
-      setValidationErrors(prev => ({
-        ...prev,
-        [gameType]: error
-      }));
-    } else {
-      // Clear error if validation passes
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[gameType];
-        return newErrors;
-      });
-    }
+    actions.updateValidationError(gameType, error);
   };
 
   const handleSubmit = () => {
@@ -480,7 +509,7 @@ export default function GameSessionPage() {
       { roomId, data: { answers: answersToSubmit } },
       {
         onSuccess: () => {
-          setIsSubmitted(true);
+          actions.setIsSubmitted(true);
           refetchScores();
           showSuccess(t('game.answersSubmittedSuccessfully'));
         },
@@ -672,18 +701,12 @@ export default function GameSessionPage() {
                 {/* Return to Room Button */}
                 <div className={styles.returnToRoomSection}>
                   <Button 
-                    onButtonClick={() => {
-                      const storedRoomType = localStorage.getItem('room_type');
-                      if (storedRoomType === 'host') {
-                        navigate('/host');
-                      } else {
-                        navigate('/join');
-                      }
-                    }}
+                    onButtonClick={handleReturnToRoom}
+                    disabled={endGameSessionMutation.isPending}
                     variant="playful"
                     fullWidth
                   >
-                    {t('game.returnToRoom')}
+                    {endGameSessionMutation.isPending ? t('game.endingGameSession') : t('game.returnToRoom')}
                   </Button>
                 </div>
               </div>
@@ -829,18 +852,12 @@ export default function GameSessionPage() {
               </Button>
             )}
             <Button 
-              onButtonClick={() => {
-                const storedRoomType = localStorage.getItem('room_type');
-                if (storedRoomType === 'host') {
-                  navigate('/host');
-                } else {
-                  navigate('/join');
-                }
-              }}
+              onButtonClick={handleReturnToRoom}
+              disabled={endGameSessionMutation.isPending}
               variant="warning"
               size="small"
             >
-              {t('game.backToRoom')}
+              {endGameSessionMutation.isPending ? t('game.endingGameSession') : t('game.backToRoom')}
             </Button>
           </div>
         </>

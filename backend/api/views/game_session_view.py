@@ -492,3 +492,42 @@ class AdvanceRoundView(APIView):
             
             serializer = GameSessionSerializer(game_session)
             return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class EndGameSessionView(APIView):
+    """
+    API view for host to end/delete the current game session.
+    Deletes all player answers and resets the game session state.
+    All players will be returned to the room and host can create a new game session.
+    """
+    permission_classes = (IsAuthenticated,)
+    
+    def post(self, request, room_id):
+        room = get_object_or_404(Room, id=room_id, is_active=True)
+        
+        # Only host can end the game session
+        if room.host != request.user:
+            return Response(
+                {'error': 'Only the host can end the game session.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        game_session = get_object_or_404(GameSession, room=room)
+        
+        # Delete all player answers for this game session
+        PlayerAnswer.objects.filter(game_session=game_session).delete()
+        
+        # Reset game session state
+        game_session.current_round = 1
+        game_session.is_completed = False
+        game_session.letter = None
+        game_session.round_letters = []
+        game_session.round_start_time = None
+        game_session.round_advance_scheduled = False
+        game_session.save()
+        
+        # Broadcast room update to notify all players
+        broadcast_room_update(room)
+        
+        serializer = GameSessionSerializer(game_session)
+        return Response(serializer.data, status=status.HTTP_200_OK)
