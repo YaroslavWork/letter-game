@@ -1,0 +1,109 @@
+/* Results Section */
+.resultsSection {
+  margin-bottom: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xlarge);
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--spacing-lg);
+}
+
+.resultsTable {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-xl);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  overflow-x: auto;
+}
+
+.answersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-base);
+  min-width: 600px;
+}
+
+.tableHeader {
+  background: var(--accent-blue);
+  color: white;
+  padding: var(--spacing-md);
+  text-align: left;
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  border: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--border-muted);
+  transition: background-color 0.2s;
+}
+
+.tableRow:hover {
+  background-color: var(--background);
+}
+
+.categoryCell {
+  padding: var(--spacing-md);
+  font-weight: 600;
+  background-color: var(--background-light);
+  color: var(--text);
+  border-right: 1px solid var(--border-muted);
+  min-width: 150px;
+}
+
+.answerCell {
+  padding: var(--spacing-md);
+  border-right: 1px solid var(--border-muted);
+  text-align: left;
+  color: var(--text);
+}
+
+.answerCell:last-child {
+  border-right: none;
+}
+
+.answerText {
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+}
+
+.pointsLabel {
+  font-size: var(--font-size-small);
+  color: var(--accent-purple);
+  font-weight: 700;
+}
+
+.totalRow {
+  background: var(--accent-purple);
+  border-top: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.totalCell {
+  padding: var(--spacing-md);
+  font-weight: 900;
+  font-size: var(--font-size-large);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.totalCell:last-child {
+  border-right: none;
+}
+
+.hostIcon {
+  font-size: 0.875rem;
+  margin-left: var(--spacing-xs);
+}

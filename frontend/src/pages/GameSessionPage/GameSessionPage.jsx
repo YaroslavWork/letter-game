@@ -10,6 +10,7 @@ import Text from '../../components/UI/Text/Text';
 import Header from '../../components/UI/Header/Header';
 import GameTimer from '../../components/UI/GameTimer/GameTimer';
 import AnswerForm from '../../components/UI/AnswerForm/AnswerForm';
+import ResultsTable from '../../components/UI/ResultsTable/ResultsTable';
 import styles from './GameSessionPage.module.css';
 
 export default function GameSessionPage() {
@@ -849,61 +850,17 @@ export default function GameSessionPage() {
 
           {/* Results Table - Show when time is up or all players submitted */}
           {(showResults || allPlayersSubmitted) && gameSession && gameSession.selected_types && displayTypes.length > 0 && (
-            <div className={styles.resultsSection}>
-                <h2 className={styles.sectionTitle}>
-                  {t('game.results')}
-                </h2>
-                <div className={styles.resultsTable}>
-                  <table className={styles.answersTable}>
-                    <thead>
-                      <tr>
-                        <th className={styles.tableHeader}>{t('game.category')}</th>
-                        {players.map((player) => (
-                          <th key={player.id} className={styles.tableHeader}>
-                            {player.game_name || player.username}
-                            {player.user_id === room.host_id && <span className={styles.hostIcon}>{t('host.host')}</span>}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {displayTypes.map((type, index) => {
-                        const gameTypeKey = gameSession.selected_types[index];
-                        return (
-                          <tr key={index} className={styles.tableRow}>
-                            <td className={styles.categoryCell}>{type}</td>
-                            {players.map((player) => {
-                              const answer = getPlayerAnswer(player.id, gameTypeKey);
-                              const points = getPlayerPointsForCategory(player.id, gameTypeKey);
-                              return (
-                                <td key={player.id} className={styles.answerCell}>
-                                  <div className={styles.answerText}>{answer || '-'}</div>
-                                  {points !== null && points !== undefined && (
-                                    <div className={styles.pointsLabel}>{points}</div>
-                                  )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr className={styles.totalRow}>
-                        <td className={styles.totalCell}>{t('game.roundTotal')}</td>
-                        {players.map((player) => {
-                          const totalPoints = getPlayerTotalPoints(player.id);
-                          return (
-                            <td key={player.id} className={styles.totalCell}>
-                              {formatPointsDisplay(totalPoints, player.id)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
+            <ResultsTable
+              displayTypes={displayTypes}
+              selectedTypes={gameSession.selected_types}
+              players={players}
+              playerScores={playerScores}
+              room={room}
+              getPlayerAnswer={getPlayerAnswer}
+              getPlayerPointsForCategory={getPlayerPointsForCategory}
+              getPlayerTotalPoints={getPlayerTotalPoints}
+              formatPointsDisplay={formatPointsDisplay}
+            />
           )}
 
           {/* Actions */}
