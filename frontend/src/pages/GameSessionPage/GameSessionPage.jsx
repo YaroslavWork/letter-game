@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useGameTimer, useAnswerForm } from '../../features/hooks/index.hooks';
+import { useRoom, useGameSession, useMutationSubmitAnswer, usePlayerScores, useMutationAdvanceRound, useGameTimer, useAnswerForm, useRoundManagement } from '../../features/hooks/index.hooks';
 import { wsClient } from '../../lib/websocket';
 import Button from '../../components/UI/Button/Button';
 import Text from '../../components/UI/Text/Text';
@@ -28,8 +28,6 @@ export default function GameSessionPage() {
   const [submittedPlayers, setSubmittedPlayers] = useState(new Set());
   const [validationErrors, setValidationErrors] = useState({});
   const [showResults, setShowResults] = useState(false);
-  const [previousRoundScores, setPreviousRoundScores] = useState(null);
-  const [previousRoundNumber, setPreviousRoundNumber] = useState(null);
   const lastWebSocketUpdateRef = useRef(null);
 
   const submitAnswerMutation = useMutationSubmitAnswer();
@@ -43,6 +41,25 @@ export default function GameSessionPage() {
   // Use answer form hook for validation
   const finalLetter = gameSession?.final_letter || gameSession?.letter;
   const { validateAnswer, validateAllAnswers } = useAnswerForm(finalLetter, t);
+
+  // Callback for round changes - resets form state
+  const handleRoundChange = useCallback(() => {
+    setIsSubmitted(false);
+    setAnswers({});
+    setValidationErrors({});
+    setSubmittedPlayers(new Set());
+    setShowResults(false);
+  }, []);
+
+  // Use round management hook
+  const {
+    previousRoundScores,
+    previousRoundNumber,
+    handleRoundAdvancement,
+    clearPreviousRoundData,
+    getPlayerScores,
+    showSeeResults
+  } = useRoundManagement(gameSession, playerScoresData, refetchScores, handleRoundChange);
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'room_update') {
@@ -59,30 +76,15 @@ export default function GameSessionPage() {
           const oldRound = prevGameSession?.current_round;
           const newRound = newGameSession.current_round;
           
-          // Check if round advanced
-          if (oldRound && newRound !== oldRound) {
-            // Round advanced, store current scores as previous round scores before they're cleared
-            const currentScoresResponse = playerScoresData?.data || playerScoresData || {};
-            const currentPlayerScores = Array.isArray(currentScoresResponse) ? currentScoresResponse : (currentScoresResponse.round_scores || []);
-            if (currentPlayerScores.length > 0) {
-              setPreviousRoundScores(currentPlayerScores);
-              setPreviousRoundNumber(oldRound);
-            }
-            // Round advanced, reset state for new round
-            setIsSubmitted(false);
-            setAnswers({});
-            setValidationErrors({});
-            setSubmittedPlayers(new Set());
-            // Reset showResults to show categories again for the new round
-            setShowResults(false);
-            // Clear previous round scores after a brief delay to allow transition
-            setTimeout(() => {
-              setPreviousRoundScores(null);
-              setPreviousRoundNumber(null);
-            }, 1000);
-            // Refetch scores for the new round
-            refetchScores();
-          } else {
+          // Check if round advanced using the hook
+          const currentScoresResponse = playerScoresData?.data || playerScoresData || {};
+          const currentPlayerScores = Array.isArray(currentScoresResponse) 
+            ? currentScoresResponse 
+            : (currentScoresResponse.round_scores || []);
+          
+          const roundAdvanced = handleRoundAdvancement(oldRound, newRound, currentPlayerScores);
+          
+          if (!roundAdvanced) {
             // Round didn't advance, refetch scores normally
             refetchScores();
           }
@@ -123,7 +125,7 @@ export default function GameSessionPage() {
       localStorage.removeItem('room_type');
       navigate('/');
     }
-  }, [navigate, roomId, refetchGameSession, refetchScores]);
+  }, [navigate, roomId, refetchGameSession, refetchScores, handleRoundAdvancement, playerScoresData]);
 
   useEffect(() => {
     wsClient.on('message', handleWebSocketMessage);
@@ -299,20 +301,17 @@ export default function GameSessionPage() {
     }
   }, [user, playerScoresData]);
 
-  // Calculate allPlayersSubmitted early so it can be used in useEffect hooks
-  const scoresResponse = playerScoresData?.data || playerScoresData || {};
-  let playerScores = Array.isArray(scoresResponse) ? scoresResponse : (scoresResponse.round_scores || []);
+  // Get player scores using the hook (handles previous round logic)
+  const playerScores = getPlayerScores();
   
-  // If we're showing previous round results, use those scores instead
-  if (showResults && previousRoundScores && previousRoundNumber && gameSession?.current_round !== previousRoundNumber) {
-    playerScores = previousRoundScores;
-  } else if (playerScores.length > 0 && !previousRoundScores && gameSession?.current_round) {
-    // Store current scores as previous round scores when they're available and we don't have stored scores
-    setPreviousRoundScores(playerScores);
-    setPreviousRoundNumber(gameSession.current_round);
-  }
-  
-  const allPlayersSubmitted = players.length > 0 && playerScores.length === players.length;
+  // Calculate allPlayersSubmitted - only check current round scores, not previous round
+  // When showing previous round results, we shouldn't consider all players as submitted for current round
+  // Also, if we just advanced to a new round (submittedPlayers is empty), don't use old scores
+  const isShowingPreviousRound = showResults && previousRoundScores && previousRoundNumber && gameSession?.current_round !== previousRoundNumber;
+  const isNewRound = submittedPlayers.size === 0; // New round means no one has submitted yet
+  const currentRoundScores = isShowingPreviousRound ? [] : playerScores;
+  // Only consider all players submitted if we're not showing previous round AND it's not a new round
+  const allPlayersSubmitted = !isNewRound && !isShowingPreviousRound && players.length > 0 && currentRoundScores.length === players.length;
 
   // Reset showResults when game completes
   useEffect(() => {
@@ -322,46 +321,19 @@ export default function GameSessionPage() {
   }, [gameSession?.is_completed]);
 
   // Show results when all players have submitted (for joiners who might miss WebSocket notification)
+  // But only if we're not showing previous round results and we have submitted players
   useEffect(() => {
-    if (allPlayersSubmitted && gameSession && !gameSession.is_completed && playerScoresData) {
+    if (allPlayersSubmitted && 
+        gameSession && 
+        !gameSession.is_completed && 
+        playerScoresData && 
+        submittedPlayers.size > 0 &&
+        !isShowingPreviousRound) {
       setShowResults(true);
     }
-  }, [allPlayersSubmitted, gameSession, playerScoresData]);
+  }, [allPlayersSubmitted, gameSession, playerScoresData, submittedPlayers.size, isShowingPreviousRound]);
 
-  // Reset answers when round changes and store previous round scores
-  const prevRoundRef = useRef(null);
-  useEffect(() => {
-    if (gameSession && gameSession.current_round) {
-      const currentRound = gameSession.current_round;
-      const prevRound = prevRoundRef.current;
-      
-      // Only reset if round actually changed (not on initial load)
-      if (prevRound !== null && prevRound !== currentRound) {
-        // Store current scores as previous round scores before they're cleared
-        const currentScoresResponse = playerScoresData?.data || playerScoresData || {};
-        const currentPlayerScores = Array.isArray(currentScoresResponse) ? currentScoresResponse : (currentScoresResponse.round_scores || []);
-        if (currentPlayerScores.length > 0) {
-          setPreviousRoundScores(currentPlayerScores);
-          setPreviousRoundNumber(prevRound);
-        }
-        setIsSubmitted(false);
-        setAnswers({});
-        setValidationErrors({});
-        setSubmittedPlayers(new Set());
-        // Reset showResults to show categories again for the new round
-        setShowResults(false);
-        // Clear previous round scores after a brief delay to allow transition
-        setTimeout(() => {
-          setPreviousRoundScores(null);
-          setPreviousRoundNumber(null);
-        }, 1000);
-        // Refetch scores for the new round
-        refetchScores();
-      }
-      
-      prevRoundRef.current = currentRound;
-    }
-  }, [gameSession?.current_round, playerScoresData]);
+  // Round change detection and state reset is handled by useRoundManagement hook
 
   // Refetch scores with totals when game is completed
   useEffect(() => {
@@ -455,8 +427,7 @@ export default function GameSessionPage() {
     // If user starts typing in a new round, hide the previous round's results and refetch scores
     if (!isSubmitted && showResults && value.trim().length > 0) {
       setShowResults(false);
-      setPreviousRoundScores(null);
-      setPreviousRoundNumber(null);
+      clearPreviousRoundData();
       refetchScores();
     }
     
@@ -747,10 +718,6 @@ export default function GameSessionPage() {
               {(showResults || allPlayersSubmitted) && isHost && !gameSession.is_completed && (
                 <div className={styles.nextRoundButtonCard}>
                   {(() => {
-                    const isLastRound = gameSession.current_round === gameSession.total_rounds;
-                    const isSingleRound = gameSession.total_rounds === 1;
-                    const showSeeResults = isLastRound || isSingleRound;
-
                     if (showSeeResults) {
                       // See Results button for last round or single round - advance round to complete game
                       return (
