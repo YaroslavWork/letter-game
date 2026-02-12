@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/venv
+**/.venv
+**/env
+*.egg-info
+.pytest_cache
+.coverage
+htmlcov
+
+# Node
+**/node_modules
+frontend/build
+
+# DB and secrets
+**/db*.sqlite3
+**/.env
+**/.env.*
+
+# IDE and OS
+.vscode
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+
+# Tests (optional: exclude to shrink image)
+# backend/tests

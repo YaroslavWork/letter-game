@@ -1,436 +1,367 @@
-# Authentication System
+# Letter Game
 
-A full-stack web application featuring user registration and authentication with JWT tokens. Built with Django REST Framework backend and React frontend.
+A multiplayer word game where players join rooms, receive a letter each round, and submit answers for categories (e.g. Country, City, Animal) that start with that letter. Built with a **Django REST Framework + Django Channels** backend (REST API + WebSockets) and a **React** frontend.
 
 ## 📋 Table of Contents
 
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [Step-by-Step Guide: Register & Login](#step-by-step-guide-register--login)
-- [Dependencies](#dependencies)
-- [API Endpoints](#api-endpoints)
-- [Troubleshooting](#troubleshooting)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Running the Application](#-running-the-application)
+- [Running with Docker](#-running-with-docker)
+- [Getting Started](#-getting-started)
+- [Dependencies](#-dependencies)
+- [API Endpoints](#-api-endpoints)
+- [WebSockets](#-websockets)
+- [Troubleshooting](#-troubleshooting)
 
 ## ✨ Features
 
-- **User Registration**: Create new accounts with username, email, and password
-- **User Login**: Secure authentication with JWT tokens
-- **Token Management**: Automatic token refresh and storage
-- **Protected Routes**: Access user profile information
-- **Form Validation**: Client-side and server-side validation
-- **Error Handling**: Comprehensive error messages for better UX
+- **User accounts**: Registration, login, and JWT-based auth with token refresh
+- **Rooms**: Host creates a room; others join via room ID. Real-time player list and updates
+- **Game rules**: Choose letter (fixed or random), categories (Country, City, Name, Animal, etc.), number of rounds, and round timer
+- **Rounds**: Each round uses a letter; players submit one answer per category starting with that letter
+- **Scoring**: Points per category, total per round, and optional “reduce timer when someone completes all categories”
+- **Real-time updates**: WebSockets for room updates, game start, player submissions, removals, and room deletion
+- **Multi-language**: English, Polish, Ukrainian
+- **Responsive UI**: Timer, answer form, results table, confirmation dialogs, notifications
 
 ## 📁 Project Structure
 
 ```
-letter_game/
-├── backend/                    # Django REST Framework API
-│   ├── api/                    # Main API application
-│   │   ├── models/            # Database models
-│   │   ├── serializers/       # Data serializers
+letter-game/
+├── Dockerfile                       # Multi-stage: Node build + Python/Daphne
+├── .dockerignore
+├── backend/                         # Django API + WebSockets
+│   ├── api/                         # Main API app
+│   │   ├── migrations/              # DB migrations
+│   │   ├── serializers/             # DRF serializers
+│   │   │   ├── game_session_serializer.py
 │   │   │   ├── jwt_serializer.py
+│   │   │   ├── player_answer_serializer.py
 │   │   │   ├── register_serializer.py
+│   │   │   ├── room_serializer.py
 │   │   │   └── user_serializer.py
-│   │   ├── views/             # API views
+│   │   ├── views/                   # API views
+│   │   │   ├── game_session_view.py
 │   │   │   ├── login_view.py
+│   │   │   ├── me_view.py
 │   │   │   ├── register_view.py
-│   │   │   └── me_view.py
-│   │   ├── urls.py            # API URL routing
-│   │   └── models.py
-│   ├── backend/                # Django project settings
-│   │   ├── settings.py        # Project configuration
-│   │   ├── urls.py            # Root URL configuration
+│   │   │   └── room_view.py
+│   │   ├── consumers.py             # WebSocket consumer (room/game events)
+│   │   ├── routing.py               # WebSocket URL routing
+│   │   ├── models.py                # Room, GameSession, PlayerAnswer, etc.
+│   │   └── urls.py                  # REST URL routing
+│   ├── backend/                     # Django project
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   ├── asgi.py                  # ASGI app (Daphne)
 │   │   └── wsgi.py
-│   ├── db.sqlite3             # SQLite database
-│   ├── manage.py              # Django management script
-│   ├── requirements.txt       # Python dependencies
-│   └── venv/                  # Python virtual environment
+│   ├── tests/                       # Pytest API tests
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── run_asgi_server.bat          # Windows: run Daphne
+│   └── run_asgi_server.sh           # Linux/Mac: run Daphne
 │
-└── frontend/                   # React frontend application
-    ├── public/                 # Static files
+└── frontend/                        # React SPA
+    ├── public/
     ├── src/
-    │   ├── components/        # Reusable UI components
-    │   │   └── UI/
-    │   │       ├── Button/
-    │   │       ├── Header/
-    │   │       ├── Input/
-    │   │       └── Text/
-    │   ├── contexts/           # React contexts
-    │   │   └── AuthContext.jsx
-    │   ├── features/           # Feature modules
-    │   │   ├── api/           # API functions
-    │   │   └── hooks/         # Custom React hooks
-    │   ├── lib/                # Utility libraries
-    │   │   └── axios.js       # Axios configuration
-    │   ├── pages/              # Page components
-    │   │   ├── LoginPage/
-    │   │   ├── RegisterPage/
-    │   │   ├── MainPage/
-    │   │   └── NotFoundPage/
-    │   ├── App.js              # Main app component
-    │   └── index.js           # Entry point
-    ├── package.json            # Node.js dependencies
+    │   ├── components/UI/           # AnswerForm, GameTimer, ResultsTable, etc.
+    │   ├── contexts/                # Auth, Language, Notification, Confirmation
+    │   ├── features/api/            # API client
+    │   ├── features/hooks/          # useGameState, useAnswerForm, useRoundManagement, etc.
+    │   ├── lib/                     # axios.js, websocket.js
+    │   ├── locales/                 # en, pl, uk
+    │   └── pages/                   # Main, Login, Register, Host, Join, GameSession, Settings
+    ├── package.json
     └── package-lock.json
 ```
 
 ## 🔧 Prerequisites
 
-Before you begin, ensure you have the following installed:
-
-- **Python 3.8+** (Python 3.13.7 recommended)
-- **Node.js 14+** and **npm** (or **yarn**)
-- **Git** (for cloning the repository)
+- **Python 3.8+** (3.10+ recommended)
+- **Node.js 14+** and **npm**
+- **Redis** (optional): required only for production-like WebSocket scaling; dev uses in-memory channel layer
 
 ## 📦 Installation
 
-### Backend Setup
+### Backend
 
-1. **Navigate to the backend directory:**
+1. **Go to the backend directory:**
    ```bash
    cd backend
    ```
 
-2. **Create a virtual environment (if not already created):**
+2. **Create and activate a virtual environment:**
    ```bash
    python -m venv venv
    ```
+   - Windows: `venv\Scripts\activate`
+   - Linux/Mac: `source venv/bin/activate`
 
-3. **Activate the virtual environment:**
-   - On Linux/Mac:
-     ```bash
-     source venv/bin/activate
-     ```
-   - On Windows:
-     ```bash
-     venv\Scripts\activate
-     ```
-
-4. **Install Python dependencies:**
+3. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-5. **Run database migrations:**
+4. **Run migrations:**
    ```bash
    python manage.py migrate
    ```
 
-### Frontend Setup
+### Frontend
 
-1. **Navigate to the frontend directory:**
+1. **Go to the frontend directory:**
    ```bash
    cd frontend
    ```
 
-2. **Install Node.js dependencies:**
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
 ## ⚙️ Configuration
 
-### Backend Configuration
+### Backend
 
-The backend uses environment variables with sensible defaults. You can optionally create a `.env` file in the `backend/` directory:
+Optional `.env` in `backend/`:
 
 ```env
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=your-secret-key
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+# DB (default: SQLite)
+# DB_ENGINE=django.db.backends.sqlite3
+# DB_NAME=db.sqlite3
+
+# Channel layer: "memory" (default) or "redis"
+CHANNEL_LAYER_BACKEND=memory
+
+# Redis (only if CHANNEL_LAYER_BACKEND=redis)
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+
+# JWT (optional)
+# JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
+# JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
 ```
 
-**Note:** If no `.env` file exists, the application will use default values suitable for development.
+### Frontend
 
-### Frontend Configuration
+- **API base URL**: `REACT_APP_API_URL` (default: `http://localhost:8000/api`)
+- **WebSocket base URL**: `REACT_APP_WS_URL` (default: `ws://localhost:8000`)
 
-The frontend is configured to connect to `http://localhost:8000/api` by default. This is set in `frontend/src/lib/axios.js`.
+Set in `.env` in `frontend/` or in your shell before `npm start`.
 
 ## 🚀 Running the Application
 
-### Start the Backend Server
+Use **Daphne (ASGI)** for the backend so WebSockets work. The plain Django `runserver` does not run the ASGI app.
 
-1. **Navigate to the backend directory:**
-   ```bash
-   cd backend
-   ```
+### Backend (Daphne)
 
-2. **Activate the virtual environment:**
-   ```bash
-   source venv/bin/activate  # Linux/Mac
-   # or
-   venv\Scripts\activate      # Windows
-   ```
-
-3. **Start the Django development server:**
-   ```bash
-   python manage.py runserver
-   ```
-
-   The backend will be available at: `http://localhost:8000`
-
-### Start the Frontend Server
-
-1. **Open a new terminal and navigate to the frontend directory:**
-   ```bash
-   cd frontend
-   ```
-
-2. **Start the React development server:**
-   ```bash
-   npm start
-   ```
-
-   The frontend will be available at: `http://localhost:3000`
-
-   The browser should automatically open. If not, navigate to `http://localhost:3000` manually.
-
-## 📝 Step-by-Step Guide: Register & Login
-
-### Registration Process
-
-1. **Navigate to the Register Page:**
-   - Open your browser and go to `http://localhost:3000`
-   - Click the "Register" button, or
-   - Navigate directly to `http://localhost:3000/register`
-
-2. **Fill in the Registration Form:**
-   - **Username**: Enter a unique username (required)
-   - **First Name**: Enter your first name (required)
-   - **Last Name**: Enter your last name (optional)
-   - **Email**: Enter a valid email address (required, must be unique)
-   - **Password**: Enter a password (required, minimum 8 characters)
-   - **Repeat Password**: Re-enter your password to confirm (required, must match)
-
-3. **Submit the Form:**
-   - Click the "Register" button
-   - The form will validate your input:
-     - All required fields must be filled
-     - Password must be at least 8 characters
-     - Passwords must match
-     - Email must be valid and unique
-
-4. **Success:**
-   - Upon successful registration, you'll see an alert: "Registration successful! Please log in."
-   - You'll be automatically redirected to the login page
-
-5. **Error Handling:**
-   - If validation fails, error messages will appear below the relevant fields
-   - If the username or email already exists, an error message will be displayed
-   - Review the errors and correct your input
-
-### Login Process
-
-1. **Navigate to the Login Page:**
-   - From the main page, click the "Login" button, or
-   - Navigate directly to `http://localhost:3000/login`
-   - If you just registered, you'll be redirected here automatically
-
-2. **Enter Your Credentials:**
-   - **Username or Email**: Enter the username or email you used during registration
-   - **Password**: Enter your password
-
-3. **Submit the Form:**
-   - Click the "Login" button
-   - The form validates that both fields are filled
-
-4. **Success:**
-   - Upon successful login:
-     - Your authentication tokens are stored in localStorage
-     - You'll be redirected to the main page (`/`)
-     - Your user data is fetched and stored in the AuthContext
-
-5. **Error Handling:**
-   - If credentials are incorrect, you'll see: "Invalid username or password"
-   - If fields are empty, validation errors will appear
-   - Review the errors and try again
-
-### Accessing Protected Resources
-
-After logging in, you can access protected endpoints. The application automatically:
-- Includes your access token in API requests
-- Refreshes your token when it expires
-- Redirects you to login if authentication fails
-
-## 📚 Dependencies
-
-### Backend Dependencies
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| Django | 5.2.7 | Web framework |
-| djangorestframework | 3.16.1 | REST API framework |
-| djangorestframework-simplejwt | 5.5.1 | JWT authentication |
-| django-cors-headers | 4.9.0 | CORS handling |
-| PyJWT | 2.10.1 | JWT token handling |
-| python-environ | 0.4.54 | Environment variable management |
-| sqlparse | 0.5.3 | SQL parsing |
-| asgiref | 3.10.0 | ASGI support |
-
-### Frontend Dependencies
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| react | 19.2.0 | UI library |
-| react-dom | 19.2.0 | React DOM renderer |
-| react-router-dom | 7.9.5 | Client-side routing |
-| axios | 1.13.2 | HTTP client |
-| @tanstack/react-query | 5.90.7 | Data fetching and caching |
-| react-scripts | 5.0.1 | Create React App scripts |
-
-## 🔌 API Endpoints
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/api/register/` | Get registration page info | No |
-| POST | `/api/register/` | Register a new user | No |
-| POST | `/api/login/` | Login and get JWT tokens | No |
-| POST | `/api/token/refresh/` | Refresh access token | No |
-| GET | `/api/me/` | Get current user data | Yes |
-
-### Request/Response Examples
-
-#### Register User
+**Windows:**
 ```bash
-POST /api/register/
-Content-Type: application/json
-
-{
-  "username": "johndoe",
-  "email": "john@example.com",
-  "password": "securepass123",
-  "first_name": "John",
-  "last_name": "Doe"
-}
+cd backend
+venv\Scripts\activate
+run_asgi_server.bat
 ```
 
-**Response (201 Created):**
-```json
-{
-  "username": "johndoe",
-  "email": "john@example.com",
-  "first_name": "John",
-  "last_name": "Doe"
-}
-```
-
-#### Login
+**Linux/Mac:**
 ```bash
-POST /api/login/
-Content-Type: application/json
-
-{
-  "username": "johndoe",
-  "password": "securepass123"
-}
+cd backend
+source venv/bin/activate
+./run_asgi_server.sh
 ```
 
-**Response (200 OK):**
-```json
-{
-  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "username": "johndoe",
-    "email": "john@example.com",
-    "first_name": "John",
-    "last_name": "Doe"
-  }
-}
-```
-
-#### Get Current User
+Or manually:
 ```bash
-GET /api/me/
-Authorization: Bearer <access_token>
+daphne -b 0.0.0.0 -p 8000 backend.asgi:application
 ```
 
-**Response (200 OK):**
-```json
-{
-  "id": 1,
-  "username": "johndoe",
-  "email": "john@example.com",
-  "first_name": "John",
-  "last_name": "Doe"
-}
+Backend: `http://localhost:8000`
+
+### Frontend
+
+```bash
+cd frontend
+npm start
 ```
 
-## 🐛 Troubleshooting
-
-### Backend Issues
-
-**Problem:** `ModuleNotFoundError` or import errors
-- **Solution:** Ensure the virtual environment is activated and dependencies are installed:
-  ```bash
-  source venv/bin/activate
-  pip install -r requirements.txt
-  ```
-
-**Problem:** Database migration errors
-- **Solution:** Run migrations:
-  ```bash
-  python manage.py migrate
-  ```
-
-**Problem:** Port 8000 already in use
-- **Solution:** Use a different port:
-  ```bash
-  python manage.py runserver 8001
-  ```
-  Then update the frontend axios baseURL accordingly.
-
-### Frontend Issues
-
-**Problem:** `npm install` fails
-- **Solution:** Clear cache and reinstall:
-  ```bash
-  npm cache clean --force
-  rm -rf node_modules package-lock.json
-  npm install
-  ```
-
-**Problem:** CORS errors in browser console
-- **Solution:** Ensure the backend CORS settings include `http://localhost:3000` and the backend server is running.
-
-**Problem:** Cannot connect to backend API
-- **Solution:** 
-  1. Verify the backend server is running on `http://localhost:8000`
-  2. Check the axios baseURL in `frontend/src/lib/axios.js`
-  3. Check browser console for specific error messages
-
-**Problem:** Tokens not persisting after page refresh
-- **Solution:** Check browser localStorage. Tokens should be stored as `access_token` and `refresh_token`.
-
-### General Issues
-
-**Problem:** Both servers won't start simultaneously
-- **Solution:** Run them in separate terminal windows/tabs
-
-**Problem:** Changes not reflecting
-- **Solution:** 
-  - Frontend: The React dev server should auto-reload. If not, restart it.
-  - Backend: Django auto-reloads on code changes. Restart if needed.
-
-## 📄 License
-
-This project is open source and available for educational purposes.
-
-## 👥 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📧 Support
-
-For issues and questions, please open an issue in the project repository.
+Frontend: `http://localhost:3000`
 
 ---
 
-**Happy Coding! 🚀**
+Run backend and frontend in **separate terminals**.
+
+## 🐳 Running with Docker
+
+A single **Dockerfile** builds the React frontend, serves it from Django, and runs Daphne (ASGI) so you can run everything with one container.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed.
+
+### Build and run
+
+From the project root (`letter-game/`):
+
+```bash
+docker build -t letter-game .
+docker run -p 8000:8000 letter-game
+```
+
+Then open **http://localhost:8000** in your browser. The app (frontend + API + WebSockets) is served on port 8000.
+
+### Options
+
+- **Custom port** (e.g. 9000):
+  ```bash
+  docker run -p 9000:8000 letter-game
+  ```
+  Use **http://localhost:9000**. WebSockets are built for port 8000; if you map to another port, rebuild with matching `REACT_APP_WS_URL` (e.g. `ws://localhost:9000`) so real-time updates work.
+
+- **Environment variables** (e.g. `SECRET_KEY`, `DEBUG`):
+  ```bash
+  docker run -p 8000:8000 -e SECRET_KEY=your-secret -e DEBUG=False letter-game
+  ```
+
+- **Persistent database** (volume for SQLite):
+  ```bash
+  docker run -p 8000:8000 -v letter-game-db:/app/backend/data -e DB_NAME=data/db.sqlite3 letter-game
+  ```
+  The `data` directory is created automatically; the DB file persists across container restarts.
+
+### Notes
+
+- The image uses an **in-memory** channel layer (no Redis). WebSockets work for a single process.
+- The frontend is built with `REACT_APP_API_URL=/api` and `REACT_APP_WS_URL=ws://localhost:8000` for same-origin use when you access the app at `http://localhost:8000` (or your host/port). If you use a different host or port, rebuild with the matching `REACT_APP_*` build args or use a reverse proxy that preserves the same origin.
+
+## 📝 Getting Started
+
+1. **Register** at `/register`, then **log in** at `/login`.
+2. **Host a game**: `/host` → create room → configure rules (letter, categories, rounds, timer) at `/host/rules/:roomId` → start game.
+3. **Join a game**: `/join` → enter room ID → wait for host to start.
+4. **Play**: Each round shows a letter. Submit one answer per category starting with that letter before the timer ends. View results and proceed to the next round.
+
+## 📚 Dependencies
+
+### Backend (main)
+
+| Package | Purpose |
+|--------|---------|
+| Django | Web framework |
+| djangorestframework | REST API |
+| djangorestframework-simplejwt | JWT auth |
+| django-cors-headers | CORS |
+| channels | WebSockets |
+| channels-redis | Redis channel layer (optional) |
+| daphne | ASGI server |
+| redis | Redis client (for channels-redis) |
+
+See `backend/requirements.txt` for versions.
+
+### Frontend (main)
+
+| Package | Purpose |
+|--------|---------|
+| react, react-dom | UI |
+| react-router-dom | Routing |
+| axios | HTTP client |
+| @tanstack/react-query | Data fetching / cache |
+
+See `frontend/package.json` for versions.
+
+## 🔌 API Endpoints
+
+### Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/register/` | Register |
+| POST | `/api/login/` | Login (returns JWT + user) |
+| POST | `/api/token/refresh/` | Refresh access token |
+| GET | `/api/me/` | Current user (auth required) |
+
+### Rooms
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/rooms/create/` | Create room |
+| POST | `/api/rooms/join/` | Join room |
+| GET | `/api/rooms/<uuid>/` | Room detail |
+| POST | `/api/rooms/<uuid>/leave/` | Leave room |
+| POST | `/api/rooms/<uuid>/delete/` | Delete room (host) |
+| POST | `/api/rooms/<uuid>/players/<id>/delete/` | Remove player (host) |
+
+### Game session
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/game-types/` | List category types |
+| GET | `/api/rooms/<uuid>/game-session/` | Get game session |
+| PUT | `/api/rooms/<uuid>/game-session/update/` | Update rules |
+| POST | `/api/rooms/<uuid>/game-session/start/` | Start game |
+| POST | `/api/rooms/<uuid>/game-session/submit/` | Submit answers |
+| GET | `/api/rooms/<uuid>/game-session/scores/` | Player scores |
+| POST | `/api/rooms/<uuid>/game-session/advance-round/` | Advance round |
+| POST | `/api/rooms/<uuid>/game-session/end/` | End game |
+
+## 🔌 WebSockets
+
+- **URL**: `ws://localhost:8000/ws/room/<room_id>/?token=<access_token>`
+- **Auth**: JWT `access_token` in query string.
+- **Events** (server → client): `room_update`, `game_started_notification`, `player_submitted_notification`, `player_removed_notification`, `room_deleted_notification`.
+- **Events** (client → server): `player_joined`, `player_left`, `player_removed`.
+
+Used for real-time room state, game start, and submissions.
+
+## 🐛 Troubleshooting
+
+### Backend
+
+- **Import / module errors**: Activate venv and `pip install -r requirements.txt`.
+- **Migration errors**: Run `python manage.py migrate` from `backend/`.
+- **Port 8000 in use**: Set `PORT=8001` (or use `-p 8001` with `daphne`) and point frontend `REACT_APP_API_URL` / `REACT_APP_WS_URL` to the new host/port.
+
+### Frontend
+
+- **`npm install` fails**: Try `npm cache clean --force`, delete `node_modules` and `package-lock.json`, then `npm install` again.
+- **CORS errors**: Ensure backend `CORS_ALLOWED_ORIGINS` includes the frontend origin (e.g. `http://localhost:3000`) and the backend is running.
+- **Can’t reach API**: Check `REACT_APP_API_URL` and that the backend is up. Use `http://localhost:8000` (or your `daphne` port).
+- **WebSocket not connecting**: Check `REACT_APP_WS_URL`, use `ws://` (not `wss://`) for localhost, and ensure you’re using Daphne (not `runserver`).
+
+### Redis (optional)
+
+- **Channel layer**: For multi-process production, set `CHANNEL_LAYER_BACKEND=redis` and configure `REDIS_HOST` / `REDIS_PORT`. Dev default is `memory`.
+
+### Docker
+
+- **Build fails (frontend stage)**: Ensure `frontend/package.json` and `frontend/package-lock.json` exist and `npm run build` works locally.
+- **Build fails (backend stage)**: Run `pip install -r backend/requirements.txt` and `python manage.py migrate` locally to verify.
+- **404 on `/` or SPA routes**: The image serves the React build from Django. Rebuild the image after frontend changes.
+
+### General
+
+- **Both servers**: Run backend and frontend in separate terminals.
+- **Changes not showing**: Restart the dev server (frontend or Daphne) if needed.
+
+## 📄 License
+
+This project is open source and available for educational use.
+
+## 👥 Contributing
+
+Contributions are welcome. Please open an issue or pull request.
+
+## 📧 Support
+
+For bugs or questions, open an issue in the project repository.
+
+---
+
+**Have fun playing! 🎮**
